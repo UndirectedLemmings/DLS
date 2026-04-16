@@ -975,7 +975,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FILL_MAP_TEST
   Map: {fileID: 901628910}
-  Void: {fileID: 11400000, guid: 7950deb7bea759141ab65aef3ca297ea, type: 2}
+  Void: {fileID: 7973421610359141367, guid: 6b059de841ee72b44aedf3863a6600c6, type: 3}
   start: {fileID: 2722136283180047193, guid: 7cab6c54e8e5360449c2bec3d60cb093, type: 3}
   signpost: {fileID: 2807226219216128232, guid: 44de2f1cfc141234b966e2aa7e9005df, type: 3}
   road: {fileID: 7336640205300709545, guid: f1b01423776e1474aa470a826c94b4d1, type: 3}
@@ -1085,7 +1085,6 @@ GameObject:
   - component: {fileID: 1932419274}
   - component: {fileID: 1932419277}
   - component: {fileID: 1932419276}
-  - component: {fileID: 1932419275}
   m_Layer: 5
   m_Name: Text (Legacy)
   m_TagString: Untagged
@@ -1112,18 +1111,6 @@ RectTransform:
   m_AnchoredPosition: {x: 455.5, y: -240}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1932419275
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1932419273}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3220b1ad030917b41b76f8531483c586, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::round_
 --- !u!114 &1932419276
 MonoBehaviour:
   m_ObjectHideFlags: 0

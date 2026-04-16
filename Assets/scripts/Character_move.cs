@@ -16,14 +16,12 @@ public class Character_move : MonoBehaviour
 
     public void Update()
     {
-
             if (target != null)
-            { transform.position = Vector3.MoveTowards(transform.position, target[x].transform.position, speed * Time.deltaTime); }
+            {
+            transform.position = Vector3.MoveTowards(transform.position, target[x].transform.position, speed * Time.deltaTime); 
+        }
             if (transform.position == target[x].transform.position)
         {
-
-
-
             x++; 
             if (x==target.Count)
             {
