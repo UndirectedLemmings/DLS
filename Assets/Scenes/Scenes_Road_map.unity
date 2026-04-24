@@ -520,7 +520,6 @@ GameObject:
   m_Component:
   - component: {fileID: 562686775}
   - component: {fileID: 562686774}
-  - component: {fileID: 562686773}
   - component: {fileID: 562686776}
   m_Layer: 0
   m_Name: Grid
@@ -529,18 +528,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &562686773
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 562686772}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc1dba25fd6f0e147821cf858b057786, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TestGrid
 --- !u!156049354 &562686774
 Grid:
   m_ObjectHideFlags: 0
@@ -777,7 +764,7 @@ Tilemap:
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Origin: {x: 0, y: 0, z: 0}
   m_Size: {x: 0, y: 0, z: 1}
-  m_TileAnchor: {x: 0.5, y: 0.5, z: 0}
+  m_TileAnchor: {x: 0, y: 0, z: 0}
   m_TileOrientation: 0
   m_TileOrientationMatrix:
     e00: 1
@@ -938,8 +925,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1325267999}
-  - component: {fileID: 1325268000}
   - component: {fileID: 1325268001}
+  - component: {fileID: 1325268002}
   m_Layer: 0
   m_Name: BRB_CLick
   m_TagString: Untagged
@@ -962,24 +949,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1325268000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1325267997}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0624192452eba3248922b9f701d5c106, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FILL_MAP_TEST
-  Map: {fileID: 901628910}
-  Void: {fileID: 7973421610359141367, guid: 6b059de841ee72b44aedf3863a6600c6, type: 3}
-  start: {fileID: 2722136283180047193, guid: 7cab6c54e8e5360449c2bec3d60cb093, type: 3}
-  signpost: {fileID: 2807226219216128232, guid: 44de2f1cfc141234b966e2aa7e9005df, type: 3}
-  road: {fileID: 7336640205300709545, guid: f1b01423776e1474aa470a826c94b4d1, type: 3}
-  Road_list: []
 --- !u!114 &1325268001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -992,9 +961,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 817b554cfb672134ba262732a85e26ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Start_scene
+  Tilemap: {fileID: 901628910}
   character: {fileID: 338324711678850750, guid: 6b846b7b2d0355c4690773f978ca7799, type: 3}
-  FMT: {fileID: 1325268000}
+  FMT: {fileID: 1325268002}
   round: {fileID: 1932419276}
+--- !u!114 &1325268002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1325267997}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a9def28ae688b6498a98809ba90cbf0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FILL_MAP_v4
+  Map: {fileID: 901628910}
+  Void: {fileID: 11400000, guid: 7950deb7bea759141ab65aef3ca297ea, type: 2}
+  road: {fileID: 11400000, guid: ef2de6fb646c00a40a1b395d5bd96737, type: 2}
+  start: {fileID: 2722136283180047193, guid: 7cab6c54e8e5360449c2bec3d60cb093, type: 3}
+  signpost: {fileID: 2807226219216128232, guid: 44de2f1cfc141234b966e2aa7e9005df, type: 3}
 --- !u!1 &1357295965
 GameObject:
   m_ObjectHideFlags: 0

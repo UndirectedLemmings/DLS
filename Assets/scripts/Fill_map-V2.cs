@@ -9,7 +9,7 @@ using UnityEngine.Tilemaps;
 
 public class FILL_MAP_v2 : MonoBehaviour //Заполнение карты пустотой
 {
-    //private Dictionary<UnityEngine.Vector3, GameObject> Cell_map = new Dictionary<UnityEngine.Vector3, GameObject>();
+    private Dictionary<UnityEngine.Vector3Int, GameObject> Cell_map = new Dictionary<UnityEngine.Vector3Int, GameObject>();
     public Tilemap Map; //игровое поле
     public Tile Void; //пустота
 
@@ -29,7 +29,7 @@ public class FILL_MAP_v2 : MonoBehaviour //Заполнение карты пу�
         generation_roadmap();
     }
 
-    public Tile start; // старт
+    public GameObject start; // старт
     public GameObject signpost;   //перекрестки
     public Tile road; //дороги
 
@@ -45,6 +45,11 @@ public class FILL_MAP_v2 : MonoBehaviour //Заполнение карты пу�
     public List<UnityEngine.Vector3Int> GetList()
     {
         return Road_list;
+    }
+
+    public Vector3Int Get_Start_road()
+    {
+        return Vector_Start;
     }
 
     private void road_bild(UnityEngine.Vector3Int point_1, UnityEngine.Vector3Int point_2)
@@ -65,7 +70,6 @@ public class FILL_MAP_v2 : MonoBehaviour //Заполнение карты пу�
             {
                 road_point1.x--;
             }
-            //Destroy(Cell_map[road_point1]);
 
             Road_list.Add(road_point1);
             Map.SetTile(road_point1, road);
@@ -81,7 +85,6 @@ public class FILL_MAP_v2 : MonoBehaviour //Заполнение карты пу�
             {
                 road_point1.y--;
             }
-            //Destroy(Cell_map[road_point1]);
             Road_list.Add(road_point1);
             Map.SetTile(road_point1, road);
         }
@@ -98,22 +101,18 @@ public class FILL_MAP_v2 : MonoBehaviour //Заполнение карты пу�
         int road_min = 5;
 
         Vector_Start = new UnityEngine.Vector3Int(Random.Range(road_min, road_leath), Random.Range(road_min, road_leath));
-        //Destroy(Cell_map[Vector_Start]);
         Road_list.Add(Vector_Start);
         Debug.Log("Перекресток 1 создан: " + Vector_Start.x + "/" + Vector_Start.y);
 
         Vector_signpost1 = new UnityEngine.Vector3Int(Random.Range((road_min), (road_min + road_leath)), Random.Range((int)(Vector_Start.y + road_min), (int)(Vector_Start.y + road_leath)) );
-        //Destroy(Cell_map[Vector_signpost1]);
         Instantiate(signpost, Vector_signpost1, quaternion);
         Debug.Log("Перекресток 2 создан: " + Vector_signpost1.x + "/" + Vector_signpost1.y);
 
         Vector_signpost2 = new UnityEngine.Vector3Int(Random.Range((int)(Vector_signpost1.x + road_min), (int)(Vector_signpost1.x + road_leath)) , Random.Range((int)(Vector_signpost1.y), (int)(Vector_signpost1.y + road_leath)));
-        //Destroy(Cell_map[Vector_signpost2]);
         Instantiate(signpost, Vector_signpost2, quaternion);
         Debug.Log("Перекресток 3 создан: " + Vector_signpost2.x + "/" + Vector_signpost2.y);
 
         Vector_signpost3 = new UnityEngine.Vector3Int(Random.Range((int)(Vector_signpost2.x + road_min), (int)(Vector_signpost2.x + road_leath)) , Random.Range((int)(Vector_signpost2.y - road_leath), (int)(Vector_signpost2.y - road_min)));
-        //Destroy(Cell_map[Vector_signpost3]);
         Instantiate(signpost, Vector_signpost3, quaternion);
         Debug.Log("Перекресток 4 создан: " + Vector_signpost3.x + "/" + Vector_signpost3.y);
 

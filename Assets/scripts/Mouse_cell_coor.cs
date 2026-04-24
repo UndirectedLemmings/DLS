@@ -9,7 +9,5 @@ public class ClickableObject : MonoBehaviour
         Debug.Log("Объект был кликнут!");
         test = GetComponent<Transform>().position;
         Debug.Log("координаты:" + test.x + "/" + test.y);
-
-        // Здесь можно выполнить другие действия, например, изменить цвет объекта
     }
 }
