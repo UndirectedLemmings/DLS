@@ -20,7 +20,7 @@ public class Start_scene : MonoBehaviour
 
         if (FMT != null)
         {
-            FMT.generation_roadmap();
+            FMT.StartGenerationWithRetries();
         } 
         else
         { Debug.LogError("Забыл перетащить");
@@ -31,7 +31,7 @@ public class Start_scene : MonoBehaviour
         Vector3Int startVector = FMT.Get_Start_road();
 
         // Спавним героя (сохраняем твой наклон)
-        character_clone = Instantiate(character, Tilemap.CellToWorld(startVector), UnityEngine.Quaternion.Euler(45, 0, 0));
+        character_clone = Instantiate(character, Tilemap.GetCellCenterWorld(startVector), UnityEngine.Quaternion.Euler(45, 0, 0));
 
         // Передаем карту
         character_clone.Tilemap = Tilemap;
@@ -43,12 +43,16 @@ public class Start_scene : MonoBehaviour
         round.text = ("круги=" + character_clone.Round().ToString());
     }
 
+    // Важно добавить проверку на null, чтобы не было ошибок, если герой еще не заспавнился
+    public void RefreshRoundUI()
+    {
+        if (character_clone != null)
+            round.text = "круги=" + character_clone.Round().ToString();
+    }
+
     public void Update()
     {
-        // Важно добавить проверку на null, чтобы не было ошибок, если герой еще не заспавнился
-        if (character_clone != null)
-        {
-            round.text = ("круги=" + character_clone.Round().ToString());
-        }
+        
+
     }
 }

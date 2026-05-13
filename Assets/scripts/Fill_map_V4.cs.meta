@@ -1,2 +1,18 @@
 fileFormatVersion: 2
 guid: 7a9def28ae688b6498a98809ba90cbf0
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - Map: {instanceID: 0}
+  - Void: {instanceID: 0}
+  - foundationTile: {instanceID: 0}
+  - selectedHero: {fileID: 11400000, guid: 258ae21aaac4c1b468ae54725297f644, type: 2}
+  - selectedFaction: {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
+  - start: {instanceID: 0}
+  - signpost: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

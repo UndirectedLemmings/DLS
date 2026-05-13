@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -5,89 +6,120 @@ using UnityEngine.Tilemaps;
 public class Character_move : MonoBehaviour
 {
     public Tilemap Tilemap;
-    public float speed = 2f;
-    public float turnSpeed = 10f; // Скорость поворота героя
-    private int R = 0; // счетчик кругов
+    public float speed = 5f;
+    public float crossroadWaitTime = 1.0f; // Время ожидания на перекрестке в секундах
+
+    private bool isMoving = false;
+    private bool isWaiting = false;
+    private int lapsCount = 0; // Бывший 'R', счетчик кругов
 
     private List<Vector3Int> currentPath;
     private int waypointIndex = 0;
-    private Vector3Int startNode; // Запоминаем старт, чтобы знать, когда засчитывать круг
-    private bool isMoving = false;
+    private Vector3Int startNode;
 
-    // Этот метод мы вызовем из спавнера, чтобы "пнуть" героя в путь
+    private Vector3Int lastCheckedCell;
+    private HandManager HandManager;
+     
+
+    private void Start()
+    {
+        // Находим BuildManager один раз при старте, чтобы не нагружать игру каждый ход
+        HandManager = FindFirstObjectByType<HandManager>();
+    }
+
     public void StartJourney(Vector3Int startPos)
     {
         startNode = startPos;
-        // Запрашиваем первый путь от стартовой точки
         RequestNextRoute(startPos);
     }
 
-    public void Update()
+    private void Update()
     {
-        // Если пути нет или мы стоим — ничего не делаем
-        if (!isMoving || currentPath == null || currentPath.Count == 0) return;
+        // Если мы не двигаемся, ждем на перекрестке или пути нет — выходим
+        if (!isMoving || isWaiting || currentPath == null || currentPath.Count == 0)
+            return;
 
-        // Переводим координату клетки в мировые координаты
-        Vector3 targetWorldPos = Tilemap.CellToWorld(currentPath[waypointIndex]);
+        // Определяем текущую целевую клетку и ее мировые координаты
+        Vector3Int targetCell = currentPath[waypointIndex];
+        Vector3 targetWorldPos = Tilemap.GetCellCenterWorld(targetCell);
 
-        // --- ДВИЖЕНИЕ ---
+        // --- ДВИЖЕНИЕ СТРОГО ПО ПРЯМОЙ ---
         transform.position = Vector3.MoveTowards(transform.position, targetWorldPos, speed * Time.deltaTime);
 
-        // --- ВРАЩЕНИЕ (То, что ты просил!) ---
-      /*  Vector3 direction = targetWorldPos - transform.position;
-        if (direction != Vector3.zero)
+        // --- ПРОВЕРКА ДОСТИЖЕНИЯ ЦЕНТРА КЛЕТКИ ---
+        if (Vector3.Distance(transform.position, targetWorldPos) <= 0.001f)
         {
-            // Вычисляем, куда нужно смотреть
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            // Как только точно встали на клетку, проверяем фундамент
+            CheckForFoundation(targetCell);
 
-            // Важная магия: сохраняем твой наклон в 45 градусов по X, чтобы моделька не "ложилась" лицом в пол
-            targetRotation = Quaternion.Euler(45, targetRotation.eulerAngles.y, 0);
+            waypointIndex++; // Берем следующую точку пути
 
-            // Плавно крутим персонажа
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
-        }*/
-
-        // --- ПРОВЕРКА ДОСТИЖЕНИЯ ТОЧКИ ---
-        if (Vector3.Distance(transform.position, targetWorldPos) < 0.01f)
-        {
-            waypointIndex++; // Берем следующую клетку пути
-
-            // Если дошли до конца текущего куска дороги
+            // Если точки в текущем маршруте закончились — мы на перекрестке
             if (waypointIndex >= currentPath.Count)
             {
-                isMoving = false;
-                Vector3Int currentCell = currentPath[currentPath.Count - 1];
-
-                // СЧЕТЧИК КРУГОВ: Если мы пришли обратно на стартовую клетку — это круг!
-                if (currentCell == startNode)
-                {
-                    R++;
-                }
-
-                // Запрашиваем новый маршрут у перекрестка, на котором стоим
-                RequestNextRoute(currentCell);
+                StartCoroutine(HandleCrossroadRoutine(targetCell));
             }
         }
     }
 
-    // Запрос маршрута из нашего Глобального Реестра
+    private IEnumerator HandleCrossroadRoutine(Vector3Int crossroadCell)
+    {
+        isWaiting = true; // Блокируем Update движения
+
+        // Если вернулись на стартовую ноду — засчитываем круг
+        if (crossroadCell == startNode)
+        {
+            lapsCount++;
+        }
+
+        // Ждем заданное время, если оно больше нуля
+        if (crossroadWaitTime > 0)
+        {
+            yield return new WaitForSeconds(crossroadWaitTime);
+        }
+
+        // Запрашиваем новый маршрут у перекрестка
+        RequestNextRoute(crossroadCell);
+
+        isWaiting = false; // Разблокируем движение по новому пути
+    }
+
     private void RequestNextRoute(Vector3Int currentGridPos)
     {
-        // Находим перекресток по координатам (FILL_MAP_v3 - это скрипт генерации карты)
         if (FILL_MAP_v4.GlobalWaypoints.TryGetValue(currentGridPos, out CoordinateSwitcher switcher))
         {
-            currentPath = switcher.GetActivePath(); // Берем активный в данный момент путь
+            currentPath = switcher.GetActivePath();
             waypointIndex = 0;
+
+            // ПРИМЕЧАНИЕ: Если генератор путей (GetActivePath) возвращает маршрут, 
+            // где ПЕРВАЯ точка — это текущий перекресток, раскомментируй строку ниже, 
+            // чтобы герой не пытался идти в ту точку, где уже стоит:
+            // if (currentPath.Count > 0 && currentPath[0] == currentGridPos) waypointIndex = 1;
+
             isMoving = true;
         }
         else
         {
-            Debug.LogWarning($"Тупик! На клетке {currentGridPos} нет знака. Герой потерялся!");
+            isMoving = false;
+            Debug.LogWarning($"Тупик! На клетке {currentGridPos} нет знака. Отряд потерялся!");
         }
     }
 
     public int Round()
     {
-        return R;
+        return lapsCount;
+    }
+
+    private void CheckForFoundation(Vector3Int cellPos)
+    {
+        // Выдаем карту, если клетка новая и содержит фундамент
+        if (cellPos != lastCheckedCell && FILL_MAP_v4.FoundationCells.Contains(cellPos))
+        {
+            lastCheckedCell = cellPos;
+            if (HandManager != null)
+            {
+                HandManager.GiveRandomCardFromPool();
+            }
+        }
     }
 }
