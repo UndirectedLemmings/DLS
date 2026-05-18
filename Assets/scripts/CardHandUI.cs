@@ -20,25 +20,27 @@ public class CardHandUI : MonoBehaviour
         // 2. Рисуем актуальную руку
         foreach (CardData card in currentHand)
         {
-            // Спавним префаб UI карточки внутри панели
             GameObject newCardUI = Instantiate(cardUIPrefab, handContainer);
 
-            // Ищем текст внутри сгенерированной карточки
+            // Настройка Имени
             TextMeshProUGUI nameText = newCardUI.GetComponentInChildren<TextMeshProUGUI>();
             if (nameText != null) nameText.text = card.cardName;
 
-            // НОВОЕ: Передаем описание для тултипа
-            CardHover hoverScript = newCardUI.GetComponent<CardHover>();
-            if (hoverScript != null)
+            // НОВОЕ: Настройка Картинки
+            Transform artObj = newCardUI.transform.Find("CardArt"); // Ищем тот самый дочерний объект
+            if (artObj != null && card.cardArt != null)
             {
-                hoverScript.SetupTooltip(card.description);
+                UnityEngine.UI.Image artImage = artObj.GetComponent<UnityEngine.UI.Image>();
+                if (artImage != null) artImage.sprite = card.cardArt;
             }
 
+            // Настройка Тултипа
+            CardHover hoverScript = newCardUI.GetComponent<CardHover>();
+            if (hoverScript != null) hoverScript.SetupTooltip(card.description);
+
+            // Настройка Drag & Drop
             CardDrag dragScript = newCardUI.GetComponent<CardDrag>();
-            if (dragScript != null)
-            {
-                dragScript.myCardData = card;
-            }
+            if (dragScript != null) dragScript.myCardData = card;
         }
     }
 }

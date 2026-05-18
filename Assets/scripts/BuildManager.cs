@@ -11,37 +11,48 @@ public class BuildManager : MonoBehaviour
 
     private CardData activeCard; // Карта, которую игрок выбрал для стройки
 
-    
+
     // Метод специально для системы Drag-and-Drop
     public bool TryBuildFromDrag(CardData cardToBuild, Vector3 screenMousePos)
     {
-        // Переводим пиксели экрана в мировые координаты Unity
-        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(screenMousePos);
-        mouseWorldPos.z = 0;
-        Vector3Int cellPos = Map.WorldToCell(mouseWorldPos);
-
-        // Проверяем, есть ли под мышкой свободный фундамент
-        if (FILL_MAP_v4.FoundationCells.Contains(cellPos))
+        // ВЕТВЛЕНИЕ: Проверяем тип карты
+        if (cardToBuild.type == CardType.Building)
         {
-            // Строим
-            Vector3 spawnPos = Map.GetCellCenterWorld(cellPos);
-            spawnPos.z = -0.1f;
-            Instantiate(cardToBuild.buildingPrefab, spawnPos, Quaternion.identity);
+            // === СТАРАЯ ЛОГИКА ДЛЯ ЗДАНИЙ ===
+            Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(screenMousePos);
+            mouseWorldPos.z = 0;
+            Vector3Int cellPos = Map.WorldToCell(mouseWorldPos);
 
-            // Удаляем фундамент
-            FILL_MAP_v4.FoundationCells.Remove(cellPos);
-
-            // Говорим HandManager'у вычеркнуть карту из логического списка
-            if (handManager != null)
+            if (FILL_MAP_v4.FoundationCells.Contains(cellPos))
             {
-                handManager.RemoveCard(cardToBuild);
+                Vector3 spawnPos = Map.GetCellCenterWorld(cellPos);
+                spawnPos.z = -0.1f;
+                Instantiate(cardToBuild.buildingPrefab, spawnPos, Quaternion.identity);
+
+                FILL_MAP_v4.FoundationCells.Remove(cellPos);
+                if (handManager != null) handManager.RemoveCard(cardToBuild);
+
+                Debug.Log($"DLS: Успех! Здание {cardToBuild.cardName} построено.");
+                return true;
             }
 
-            Debug.Log($"DLS: Успех! Здание {cardToBuild.cardName} построено перетаскиванием.");
-            return true; // Говорим карточке, что она может самоуничтожиться
+            Debug.Log("DLS: Для постройки нужен свободный фундамент!");
+            return false;
+        }
+        else if (cardToBuild.type == CardType.Effect)
+        {
+            // === НОВАЯ ЛОГИКА ДЛЯ ЭФФЕКТОВ ===
+            // Пока что мы разрешаем кинуть заклинание просто в любое место экрана.
+            // В будущем здесь можно добавить проверку: наведен ли курсор на врага/героя.
+
+            Debug.Log($"DLS: Разыграно заклинание: {cardToBuild.cardName}! Сила эффекта: {cardToBuild.effectPower}");
+
+            // Удаляем карту из руки
+            if (handManager != null) handManager.RemoveCard(cardToBuild);
+
+            return true; // Разрешаем карточке сгореть
         }
 
-        Debug.Log("DLS: Здесь нельзя строить. Возвращаю карту в руку.");
-        return false; // Говорим карточке лететь обратно
+        return false;
     }
 }

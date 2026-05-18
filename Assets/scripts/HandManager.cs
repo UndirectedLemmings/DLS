@@ -14,23 +14,50 @@ public class HandManager : MonoBehaviour
     // Этот метод теперь вызывается из Character_move
     public void GiveRandomCardFromPool()
     {
-        // 1. Собираем карты из выбранного героя и фракции
         List<CardData> sessionPool = new List<CardData>();
 
-        if (mapGenerator.selectedHero != null && mapGenerator.selectedHero.heroCards != null)
-            sessionPool.AddRange(mapGenerator.selectedHero.heroCards);
+        // 1. Добавляем карты Лидера отряда (Главные и Вспомогательные)
+        if (mapGenerator.selectedHero != null)
+        {
+            if (mapGenerator.selectedHero.heroMainCards != null)
+                sessionPool.AddRange(mapGenerator.selectedHero.heroMainCards);
 
-        if (mapGenerator.selectedFaction != null && mapGenerator.selectedFaction.factionCards != null)
-            sessionPool.AddRange(mapGenerator.selectedFaction.factionCards);
+            if (mapGenerator.selectedHero.heroSupportCards != null)
+                sessionPool.AddRange(mapGenerator.selectedHero.heroSupportCards);
+        }
 
-        // 2. Проверяем, есть ли что выдавать
+        // 2. Добавляем Вспомогательные карты остальных членов отряда
+        if (mapGenerator.activeSquad != null && mapGenerator.activeSquad.Count > 0)
+        {
+            foreach (HeroData companion in mapGenerator.activeSquad)
+            {
+                if (companion != null && companion.heroSupportCards != null)
+                {
+                    sessionPool.AddRange(companion.heroSupportCards);
+                }
+            }
+        }
+
+        // 3. Добавляем карты всех активных вражеских Фракций
+        if (mapGenerator.activeFactions != null && mapGenerator.activeFactions.Count > 0)
+        {
+            foreach (FactionData faction in mapGenerator.activeFactions)
+            {
+                if (faction != null && faction.factionCards != null)
+                {
+                    sessionPool.AddRange(faction.factionCards);
+                }
+            }
+        }
+
+        // 4. Проверяем, удалось ли хоть что-то собрать
         if (sessionPool.Count == 0)
         {
-            Debug.LogWarning("DLS: Пул карт пуст! У Героя и Фракции нет карт для выдачи.");
+            Debug.LogWarning("DLS: Пул карт пуст! У Лидера, Отряда и Фракций нет карт для выдачи.");
             return;
         }
 
-        // 3. Выбираем случайную
+        // 5. Выдаем случайную карту из собранного пула
         CardData randomCard = sessionPool[Random.Range(0, sessionPool.Count)];
         AddCardToHand(randomCard);
     }

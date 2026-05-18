@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -14,23 +15,32 @@ public class FILL_MAP_v4 : MonoBehaviour
     [Header("Настройки фундаментов")]
     [Range(0, 5)] public int minFoundationsPerRoad = 1; // Минимальное число на одном отрезке пути
     [Range(1, 10)] public int maxFoundationsPerRoad = 3; // Максимальное число на одном отрезке пути
-    
+
+    [Header("Визуализация границ")]
+    public LineRenderer borderLineRenderer;
+
+    // Расширим карту, чтобы внешним маршрутам было где развернуться
+    [Header("Настройки карты")]
+    public int mapWidth = 40;
+    public int mapHeight = 40;
+
+
     // Список для хранения объектов, чтобы мы могли их удалить при неудачной генерации
     private List<GameObject> tempMapObjects = new List<GameObject>();
 
 
     public Tilemap Map;
-    public TileBase Void;
+    public TileBase VoidTile;
     
     public TileBase foundationTile;// Тайл "особой зоны" для строительства
-
     [Header("Настройки Героя (Внутренний круг)")]
     public List<HeroData> availableHeroes;
-    public HeroData selectedHero;
+    public HeroData selectedHero;          // Наш Лидер отряда
+    public List<HeroData> activeSquad;     // ОСТАЛЬНОЙ ОТРЯД (спутники лидера, от 0 до 3 героев)
 
-    [Header("Настройки Фракции (Внешний круг)")]
+    [Header("Настройки Фракций (Внешний круг)")]
     public List<FactionData> availableFactions;
-    public FactionData selectedFaction;
+    public List<FactionData> activeFactions;
 
     public GameObject start;
     public GameObject signpost;
@@ -40,9 +50,7 @@ public class FILL_MAP_v4 : MonoBehaviour
     public static Dictionary<Vector3Int, CoordinateSwitcher> GlobalWaypoints = new Dictionary<Vector3Int, CoordinateSwitcher>();
     private HashSet<Vector3Int> globalOccupiedCells = new HashSet<Vector3Int>();
 
-    // Расширим карту, чтобы внешним маршрутам было где развернуться
-    private int mapWidth = 40;
-    private int mapHeight = 40;
+
 
     Vector3Int Vector_Start;
     private bool generation_roadmap() // Теперь это private bool!
@@ -52,11 +60,15 @@ public class FILL_MAP_v4 : MonoBehaviour
         globalOccupiedCells.Clear();
 
         // --- ВЕРНУЛИ ЗАЛИВКУ ВОЙДОМ ---
-        for (int x = 0; x < mapWidth; x++)
+        int overscan = 20;
+
+        for (int x = -overscan; x < mapWidth + overscan; x++)
         {
-            for (int y = 0; y < mapHeight; y++)
+            for (int y = -overscan; y < mapHeight + overscan; y++)
             {
-                Map.SetTile(new Vector3Int(x, y, 0), Void);
+                // Если используешь Vector3Int для координат:
+                Vector3Int pos = new Vector3Int(x, y, 0);
+                Map.SetTile(pos, VoidTile); // voidTile - переменная твоего тайла пустоты
             }
         }
 
@@ -101,18 +113,51 @@ public class FILL_MAP_v4 : MonoBehaviour
         // --- ВЫЧИСЛЯЕМ ЦЕНТР НАШЕГО ГОРОДА ---
         Vector2 loopCenter = new Vector2(mapWidth / 2f, mapHeight / 2f); // Центр теперь всегда стабилен
 
+        // --- РАСПРЕДЕЛЕНИЕ ФРАКЦИЙ ПО КАРТЕ ---
+        FactionData facS1 = null; // Отрезок: Старт -> Знак 1
+        FactionData facS2 = null; // Отрезок: Знак 1 -> Знак 2
+        FactionData facS3 = null; // Отрезок: Знак 2 -> Знак 3
+        FactionData facS4 = null; // Отрезок: Знак 3 -> Старт (Обычно делаем безопасным)
+
+        if (activeFactions != null && activeFactions.Count > 0)
+        {
+            if (activeFactions.Count == 1)
+            {
+                // 1 фракция: Занимает два центральных отрезка (Знак 1 -> 2 -> 3)
+                facS2 = activeFactions[0];
+                facS3 = activeFactions[0];
+            }
+            else if (activeFactions.Count == 2)
+            {
+                // 2 фракции: Делят центральные отрезки пополам
+                facS2 = activeFactions[0];
+                facS3 = activeFactions[1];
+            }
+            else if (activeFactions.Count >= 3)
+            {
+                // 3 фракции: Занимают всё, кроме последнего пути домой!
+                facS1 = activeFactions[0];
+                facS2 = activeFactions[1];
+                facS3 = activeFactions[2];
+            }
+        }
+
         // --- ПРОВЕРКА УСПЕШНОСТИ ПУТЕЙ ---
-        // Если хоть один отрезок вернул false (тупик), прерываем генерацию и возвращаем false
-        if (!BuildSmartRoutes(start_Object.GetComponent<CoordinateSwitcher>(), Vector_Start, Vector_signpost1, loopCenter)) return false;
+
+        // 1. Выход из лагеря (Передаем facS1)
+        if (!BuildSmartRoutes(start_Object.GetComponent<CoordinateSwitcher>(), Vector_Start, Vector_signpost1, loopCenter, facS1)) return false;
         GlobalWaypoints.Add(Vector_Start, start_Object.GetComponent<CoordinateSwitcher>());
 
-        if (!BuildSmartRoutes(signpost1_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost1, Vector_signpost2, loopCenter)) return false;
+        // 2. Первая трасса (Передаем facS2)
+        if (!BuildSmartRoutes(signpost1_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost1, Vector_signpost2, loopCenter, facS2)) return false;
         GlobalWaypoints.Add(Vector_signpost1, signpost1_Object.GetComponent<CoordinateSwitcher>());
 
-        if (!BuildSmartRoutes(signpost2_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost2, Vector_signpost3, loopCenter)) return false;
+        // 3. Вторая трасса (Передаем facS3)
+        if (!BuildSmartRoutes(signpost2_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost2, Vector_signpost3, loopCenter, facS3)) return false;
         GlobalWaypoints.Add(Vector_signpost2, signpost2_Object.GetComponent<CoordinateSwitcher>());
 
-        if (!BuildSmartRoutes(signpost3_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost3, Vector_Start, loopCenter)) return false;
+        // 4. Возвращение в лагерь (Передаем facS4)
+        if (!BuildSmartRoutes(signpost3_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost3, Vector_Start, loopCenter, facS4)) return false;
         GlobalWaypoints.Add(Vector_signpost3, signpost3_Object.GetComponent<CoordinateSwitcher>());
 
         CameraMovement camScript = Camera.main.GetComponent<CameraMovement>();
@@ -121,63 +166,63 @@ public class FILL_MAP_v4 : MonoBehaviour
             camScript.SetupCameraForMap(40, 40); // Передай сюда реальные переменные ширины и высоты твоей карты
         }
 
+        DrawMapBorder();
+
         return true; // Всё построилось идеально!
     }
 
 
-    private bool BuildSmartRoutes(CoordinateSwitcher switcher, Vector3Int startPoint, Vector3Int endPoint, Vector2 loopCenter)
+    // ДОБАВИЛ ПАРАМЕТР: bool generatePathB = true
+    private bool BuildSmartRoutes(CoordinateSwitcher switcher, Vector3Int startPoint, Vector3Int endPoint, Vector2 loopCenter, FactionData segmentFaction)
     {
-        // ==========================================
-        // 1. ВНУТРЕННИЙ КРУГ "А" (Район Героя)
-        // ==========================================
+        // 1. Внутренний круг А (Оставляем как было)
         List<Vector3Int> pathA = FindPathAStar(startPoint, endPoint, new HashSet<Vector3Int>(), false, loopCenter);
-
         if (pathA == null || pathA.Count == 0) return false;
 
-        // Рисуем путь А тайлом выбранного ГЕРОЯ
         DrawAndRegisterPath(pathA, selectedHero.heroRoadTile);
 
-        // ==========================================
-        // 2. ВНЕШНИЙ КРУГ "Б" (Земли Фракции)
-        // ==========================================
-        Vector3Int mergePoint = endPoint;
-        if (pathA.Count > 3) mergePoint = pathA[pathA.Count - 3];
-
-        // 3. Генерируем "толстые" стены, передавая точку слияния
-        HashSet<Vector3Int> thickObstacles = GetThickObstacles(pathA, startPoint, endPoint, mergePoint);
-
-        // 4. Внешний круг Б (строим путь до точки слияния!)
-        List<Vector3Int> pathB = FindPathAStar(startPoint, mergePoint, thickObstacles, true, loopCenter);
-        // ЕСЛИ ПУТЬ Б НЕ НАЙДЕН - БЬЕМ ТРЕВОГУ
-        if (pathB == null || pathB.Count == 0) return false;
-
-        // 5. "Сшиваем" пути: добавляем хвост пути А в путь Б
-        if (pathB.Count > 0)
-        {
-            int mergeIndex = pathA.IndexOf(mergePoint);
-            if (mergeIndex != -1)
-            {
-                for (int i = mergeIndex + 1; i < pathA.Count; i++) pathB.Add(pathA[i]);
-            }
-        }
-
-        // Рисуем путь Б тайлом выбранной ФРАКЦИИ
-        DrawAndRegisterPath(pathB, selectedFaction.factionRoadTile);
-        // ==========================================
-        // 3. РАССТАНОВКА ФУНДАМЕНТОВ (Влияние сторон)
-        // ==========================================
-        // Лидер влияет на количество баз/лагерей во внутреннем круге
         int minA = Mathf.Max(0, minFoundationsPerRoad + selectedHero.bonusFoundations);
         int maxA = Mathf.Max(minA, maxFoundationsPerRoad + selectedHero.bonusFoundations);
         GenerateFoundations(pathA, minA, maxA);
 
-        // Фракция диктует количество баз/засад на внешнем круге
-        int minB = Mathf.Max(0, minFoundationsPerRoad + selectedFaction.extraFoundations);
-        int maxB = Mathf.Max(minB, maxFoundationsPerRoad + selectedFaction.extraFoundations);
-        GenerateFoundations(pathB, minB, maxB);
-
         switcher.pathA = pathA;
-        switcher.pathB = pathB;
+
+        // ==========================================
+        // 2. ВНЕШНИЙ КРУГ "Б" (Земли Фракции)
+        // ==========================================
+        if (segmentFaction != null) // ПРОВЕРЯЕМ: ЕСТЬ ЛИ ФРАКЦИЯ НА ЭТОМ ОТРЕЗКЕ?
+        {
+            Vector3Int mergePoint = endPoint;
+            if (pathA.Count > 3) mergePoint = pathA[pathA.Count - 3];
+
+            HashSet<Vector3Int> thickObstacles = GetThickObstacles(pathA, startPoint, endPoint, mergePoint);
+
+            List<Vector3Int> pathB = FindPathAStar(startPoint, mergePoint, thickObstacles, true, loopCenter);
+            if (pathB == null || pathB.Count == 0) return false;
+
+            if (pathB.Count > 0)
+            {
+                int mergeIndex = pathA.IndexOf(mergePoint);
+                if (mergeIndex != -1)
+                {
+                    for (int i = mergeIndex + 1; i < pathA.Count; i++) pathB.Add(pathA[i]);
+                }
+            }
+
+            // ИСПОЛЬЗУЕМ ДАННЫЕ ИМЕННО ЭТОЙ ФРАКЦИИ (segmentFaction)
+            DrawAndRegisterPath(pathB, segmentFaction.factionRoadTile);
+
+            int minB = Mathf.Max(0, minFoundationsPerRoad + segmentFaction.extraFoundations);
+            int maxB = Mathf.Max(minB, maxFoundationsPerRoad + segmentFaction.extraFoundations);
+            GenerateFoundations(pathB, minB, maxB);
+
+            switcher.pathB = pathB;
+        }
+        else
+        {
+            // Безопасная зона (фракции нет)
+            switcher.pathB = pathA;
+        }
 
         return true;
     }
@@ -476,13 +521,76 @@ public Vector3Int Get_Start_road()
     {
         sessionCardPool.Clear();
 
-        if (selectedHero != null)
-             sessionCardPool.AddRange(selectedHero.heroCards);
-        
-    if (selectedFaction != null)
-            sessionCardPool.AddRange(selectedFaction.factionCards);
-        
-    Debug.Log($"Пул карт сформирован: {sessionCardPool.Count} видов карт доступно.");
+        // 1. Добавляем ГЛАВНЫЕ карты Лидера отряда
+        if (selectedHero != null && selectedHero.heroMainCards != null)
+        {
+            sessionCardPool.AddRange(selectedHero.heroMainCards);
+
+            // Опционально: Лидер может добавлять и свои неглавные карты тоже!
+            if (selectedHero.heroSupportCards != null)
+            {
+                sessionCardPool.AddRange(selectedHero.heroSupportCards);
+            }
+        }
+
+        // 2. ДОБАВЛЕНО: Пробегаемся по всему ОТРЯДУ и забираем их НЕГЛАВНЫЕ карты
+        if (activeSquad != null && activeSquad.Count > 0)
+        {
+            foreach (HeroData companion in activeSquad)
+            {
+                if (companion != null && companion.heroSupportCards != null)
+                {
+                    sessionCardPool.AddRange(companion.heroSupportCards);
+                    Debug.Log($"Спутник {companion.heroName} добавил свои карты поддержки в пул.");
+                }
+            }
+        }
+
+        // 3. Добавляем карты ВСЕХ активных фракций на карте (как в прошлом шаге)
+        if (activeFactions != null && activeFactions.Count > 0)
+        {
+            foreach (FactionData faction in activeFactions)
+            {
+                if (faction != null && faction.factionCards != null)
+                {
+                    sessionCardPool.AddRange(faction.factionCards);
+                }
+            }
+        }
+
+        Debug.Log($"Пул карт сессии сформирован! Всего доступно видов карт: {sessionCardPool.Count}");
     }
 
+    void DrawMapBorder()
+    {
+        if (borderLineRenderer == null)
+        {
+            Debug.LogError("DLS: Не назначен LineRenderer для границы карты в FILL_MAP_v4!");
+            return;
+        }
+
+        // Нам нужны 4 угловые точки. 
+        // Если карта генерируется от (0,0) до (mapWidth, mapHeight):
+
+        Vector3[] corners = new Vector3[4];
+
+        // ВАЖНО: мы ставим Z в -0.1f, чтобы рамка была чуть ближе к камере, 
+        // чем тайлы на Z=0, и не "мерцала" сквозь них.
+        float zOffset = -0.1f;
+
+        corners[0] = new Vector3(0, 0, zOffset);                     // Левый нижний
+        corners[1] = new Vector3(0, mapHeight, zOffset);             // Левый верхний
+        corners[2] = new Vector3(mapWidth, mapHeight, zOffset);       // Правый верхний
+        corners[3] = new Vector3(mapWidth, 0, zOffset);             // Правый нижний
+
+        // Указываем LineRenderer, что у нас 4 точки
+        borderLineRenderer.positionCount = 4;
+
+        // Передаем массив координат
+        borderLineRenderer.SetPositions(corners);
+
+        // На всякий случай включаем loop через код
+        borderLineRenderer.loop = true;
+    }
 }
+

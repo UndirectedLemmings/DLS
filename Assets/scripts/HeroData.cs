@@ -6,11 +6,12 @@ using UnityEngine.Tilemaps;
 public class HeroData : ScriptableObject
 {
     public string heroName;
-    public TileBase heroRoadTile;
+    public TileBase heroRoadTile; // Используется, только если он Лидер
+
+    [Header("Колоды карт")]
+    public List<CardData> heroMainCards;    // ГЛАВНЫЕ КАРТЫ (активны, только если он Лидер)
+    public List<CardData> heroSupportCards; // НЕГЛАВНЫЕ КАРТЫ (добавляются, если он просто в отряде)
 
     [Header("Модификаторы лидера")]
-    public int bonusFoundations;
-
-    [Header("Карты зданий героя")]
-    public List<CardData> heroCards = new List<CardData>();
+    public int bonusFoundations; // Используется, только если он Лидер
 }
