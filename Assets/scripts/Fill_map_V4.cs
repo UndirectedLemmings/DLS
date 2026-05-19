@@ -24,10 +24,16 @@ public class FILL_MAP_v4 : MonoBehaviour
     public int mapWidth = 40;
     public int mapHeight = 40;
 
+    [Header("Постобработка")]
+    public VoidDecorator voidDecorator;
+
+    // Глобальный реестр зон влияния (Клетка дороги -> Тайлы её пустоты)
+    public Dictionary<Vector3Int, UnityEngine.Tilemaps.TileBase[]> territoryMap = new Dictionary<Vector3Int, UnityEngine.Tilemaps.TileBase[]>();
 
     // Список для хранения объектов, чтобы мы могли их удалить при неудачной генерации
     private List<GameObject> tempMapObjects = new List<GameObject>();
 
+    public static Dictionary<Vector3Int, ScriptableObject> cellOwners = new Dictionary<Vector3Int, ScriptableObject>();
 
     public Tilemap Map;
     public TileBase VoidTile;
@@ -58,6 +64,8 @@ public class FILL_MAP_v4 : MonoBehaviour
         Debug.Log("Генерация: Активация Внешнего Кольца");
         GlobalWaypoints.Clear();
         globalOccupiedCells.Clear();
+        territoryMap.Clear();
+        cellOwners.Clear();
 
         // --- ВЕРНУЛИ ЗАЛИВКУ ВОЙДОМ ---
         int overscan = 20;
@@ -166,6 +174,15 @@ public class FILL_MAP_v4 : MonoBehaviour
             camScript.SetupCameraForMap(40, 40); // Передай сюда реальные переменные ширины и высоты твоей карты
         }
 
+        // Запускаем декорацию пустоты
+        if (voidDecorator != null)
+        {
+            // Передаем массив тайлов героя последним аргументом
+            voidDecorator.Decorate(mapWidth, mapHeight, globalOccupiedCells, territoryMap, selectedHero.territoryVoidTiles);
+        }
+
+        GridGameController.Instance.InitializeGrid(mapWidth, mapHeight);
+
         DrawMapBorder();
 
         return true; // Всё построилось идеально!
@@ -179,7 +196,9 @@ public class FILL_MAP_v4 : MonoBehaviour
         List<Vector3Int> pathA = FindPathAStar(startPoint, endPoint, new HashSet<Vector3Int>(), false, loopCenter);
         if (pathA == null || pathA.Count == 0) return false;
 
-        DrawAndRegisterPath(pathA, selectedHero.heroRoadTile);
+        DrawAndRegisterPath(pathA, selectedHero.heroRoadTile, selectedHero.territoryVoidTiles, selectedHero);
+
+
 
         int minA = Mathf.Max(0, minFoundationsPerRoad + selectedHero.bonusFoundations);
         int maxA = Mathf.Max(minA, maxFoundationsPerRoad + selectedHero.bonusFoundations);
@@ -210,7 +229,14 @@ public class FILL_MAP_v4 : MonoBehaviour
             }
 
             // ИСПОЛЬЗУЕМ ДАННЫЕ ИМЕННО ЭТОЙ ФРАКЦИИ (segmentFaction)
-            DrawAndRegisterPath(pathB, segmentFaction.factionRoadTile);
+            if (segmentFaction != null)
+            {
+                DrawAndRegisterPath(pathB, segmentFaction.factionRoadTile, segmentFaction.territoryVoidTiles, segmentFaction);
+            }
+            else
+            {
+                DrawAndRegisterPath(pathB, selectedHero.heroRoadTile, selectedHero.territoryVoidTiles, selectedHero);
+            }
 
             int minB = Mathf.Max(0, minFoundationsPerRoad + segmentFaction.extraFoundations);
             int maxB = Mathf.Max(minB, maxFoundationsPerRoad + segmentFaction.extraFoundations);
@@ -255,17 +281,37 @@ public class FILL_MAP_v4 : MonoBehaviour
         return thick;
     }
 
-    private void DrawAndRegisterPath(List<Vector3Int> path, TileBase currentTile)
+    // ДОБАВЛЕНО: Новый аргумент ScriptableObject owner в конце
+    void DrawAndRegisterPath(List<Vector3Int> path, UnityEngine.Tilemaps.TileBase currentTile, UnityEngine.Tilemaps.TileBase[] voidTiles, ScriptableObject owner)
     {
-        if (path == null) return;
         foreach (Vector3Int p in path)
         {
-            // Проверяем, не нарисована ли здесь уже дорога 
-            // (Маршрут А рисуется первым, поэтому он "забронирует" свои клетки)
-            if (!globalOccupiedCells.Contains(p))
+            if (globalOccupiedCells.Contains(p) && currentTile != selectedHero.heroRoadTile) continue;
+
+            Map.SetTile(p, currentTile);
+            globalOccupiedCells.Add(p);
+
+            // --- НОВОЕ: ЗАПИСЫВАЕМ ВЛАДЕЛЬЦА ТЕРРИТОРИИ ---
+            if (owner != null)
             {
-                Map.SetTile(p, currentTile); // Рисуем переданным тайлом
-                globalOccupiedCells.Add(p);  // Добавляем в реестр занятых клеток
+                // Проверяем, нет ли уже владельца у этой клетки (на случай перекрестков)
+                if (!cellOwners.ContainsKey(p))
+                {
+                    cellOwners.Add(p, owner);
+                }
+                else if (owner is HeroData)
+                {
+                    // Герой имеет приоритет на перекрестках! Если клетка уже чья-то, 
+                    // но сейчас мы рисуем дорогу героя, перезаписываем владельца
+                    cellOwners[p] = owner;
+                }
+            }
+            // ----------------------------------------------
+
+            // Запоминаем тайлы пустоты для этой клетки
+            if (voidTiles != null && voidTiles.Length > 0)
+            {
+                territoryMap[p] = voidTiles;
             }
         }
     }

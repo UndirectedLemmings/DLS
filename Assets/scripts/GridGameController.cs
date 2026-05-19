@@ -3,19 +3,49 @@ using UnityEngine.Tilemaps;
 
 public class GridGameController : MonoBehaviour
 {
+    public static GridGameController Instance { get; private set; }
+
     public Tilemap tilemap;
-    public int width = 50;
-    public int height = 50;
     public Vector3Int originCell = Vector3Int.zero;
-    private LogicalGrid logic;
+
+    public LogicalGrid logic { get; private set; }
+
+    // Переменные теперь только для чтения извне, они задаются из генератора
+    public int gridWidth { get; private set; }
+    public int gridHeight { get; private set; }
 
     void Awake()
     {
-        logic = new LogicalGrid(width, height);
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Debug.LogWarning("Найдено несколько GridGameController! Удаляю дубликат.");
+            Destroy(gameObject);
+            return;
+        }
+
+        // ВАЖНО: Мы больше не создаем logic здесь, ждем команды от FILL_MAP_v4
+    }
+
+    // --- НОВЫЙ МЕТОД ---
+    // Эту функцию должен вызвать FILL_MAP_v4, когда определится с размерами
+    public void InitializeGrid(int mapWidth, int mapHeight)
+    {
+        gridWidth = mapWidth;
+        gridHeight = mapHeight;
+
+        logic = new LogicalGrid(gridWidth, gridHeight);
+        Debug.Log($"Логическая сетка успешно инициализирована генератором. Размер: {gridWidth}x{gridHeight}");
     }
 
     void Update()
     {
+        // Добавляем защиту от кликов до генерации карты
+        if (logic == null) return;
+
         if (Input.GetMouseButtonDown(0))
         {
             Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -28,5 +58,11 @@ public class GridGameController : MonoBehaviour
             else
                 Debug.Log("Вне игровой зоны");
         }
+    }
+
+    public Vector3 GetWorldPosition(Vector2Int logicPos)
+    {
+        Vector3Int cellPos = new Vector3Int(logicPos.x + originCell.x, logicPos.y + originCell.y, 0);
+        return tilemap.GetCellCenterWorld(cellPos);
     }
 }

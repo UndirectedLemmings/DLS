@@ -10,7 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 365050aee8136404383a12147d3bf4af, type: 3}
-  m_Name: test_card
+  m_Name: test_lider_card
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: "\u041D\u043E\u0432\u0430\u044F \u043F\u043E\u0441\u0442\u0440\u043E\u0439\u043A\u0430"
+  cardName: "\u041A\u0430\u0440\u0442\u0430 \u041B\u0438\u0434\u0435\u0440"
+  description: "\u041A\u0430\u0440\u0442\u0430 \u041B\u0438\u0434\u0435\u0440"
+  cardArt: {fileID: 1445084137899573599, guid: a8263189349c8aa43a1d10c23621ec12, type: 3}
+  type: 0
+  alignment: 0
+  specificOwner: {fileID: 11400000, guid: ea74334add513a44aa710bcf4d0accf5, type: 2}
   buildingPrefab: {fileID: 6700367535818369590, guid: 799de346611cedd4db1e8e96ed449c4c, type: 3}
+  effectPower: 0

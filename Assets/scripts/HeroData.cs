@@ -14,4 +14,7 @@ public class HeroData : ScriptableObject
 
     [Header("Модификаторы лидера")]
     public int bonusFoundations; // Используется, только если он Лидер
+
+    [Header("Территория (Фон вокруг дороги)")]
+    public UnityEngine.Tilemaps.TileBase[] territoryVoidTiles;
 }

@@ -448,8 +448,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridGameController
   tilemap: {fileID: 901628910}
-  width: 50
-  height: 50
   originCell: {x: 0, y: 0, z: 0}
 --- !u!1 &619394800
 GameObject:
@@ -755,25 +753,25 @@ Tilemap:
   m_TileMatrixArray:
   - m_RefCount: 0
     m_Data:
-      e00: 2.7105178e-19
+      e00: 1.3421207e-35
       e01: 0
-      e02: 1.6234593e-31
-      e03: 2.7105096e-19
-      e10: 8.25e-43
+      e02: 1.3421161e-35
+      e03: -2.7105096e-19
+      e10: 2.8e-43
       e11: 0
-      e12: 3.45e-43
-      e13: 8.25e-43
-      e20: -0.00011860556
+      e12: 2.8e-43
+      e13: 9.47e-43
+      e20: 14510.969
       e21: 0
-      e22: -1.6305568e+29
-      e23: -9.739597e-19
-      e30: 4.5915e-41
+      e22: 1.7785142e+29
+      e23: 9.930576e-19
+      e30: 4.5907e-41
       e31: 0
-      e32: 8.28e-43
-      e33: 8.25e-43
+      e32: 9.51e-43
+      e33: 9.49e-43
   m_TileColorArray:
   - m_RefCount: 0
-    m_Data: {r: 1.6236398e-31, g: 1.6236398e-31, b: 1.6236398e-31, a: 1.6236398e-31}
+    m_Data: {r: 1e-45, g: 1e-45, b: 1e-45, a: 1e-45}
   m_TileObjectToInstantiateArray: []
   m_AnimationFrameRate: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -811,6 +809,7 @@ GameObject:
   - component: {fileID: 1325268002}
   - component: {fileID: 1325268005}
   - component: {fileID: 1325268003}
+  - component: {fileID: 1325268006}
   m_Layer: 0
   m_Name: BRB_CLick
   m_TagString: Untagged
@@ -864,15 +863,25 @@ MonoBehaviour:
   difficultyLevel: 1
   minFoundationsPerRoad: 1
   maxFoundationsPerRoad: 3
+  borderLineRenderer: {fileID: 3377982831278128258, guid: 3fb1ca2632ee2ca4993761b8e9137c2e, type: 3}
+  mapWidth: 40
+  mapHeight: 40
+  voidDecorator: {fileID: 1325268006}
   Map: {fileID: 901628910}
-  Void: {fileID: 11400000, guid: 7950deb7bea759141ab65aef3ca297ea, type: 2}
+  VoidTile: {fileID: 11400000, guid: 7950deb7bea759141ab65aef3ca297ea, type: 2}
   foundationTile: {fileID: 11400000, guid: dc5acfecc62449c4d91f09fbcbc9cb13, type: 2}
   availableHeroes:
   - {fileID: 0}
-  selectedHero: {fileID: 11400000, guid: 258ae21aaac4c1b468ae54725297f644, type: 2}
+  selectedHero: {fileID: 11400000, guid: ea74334add513a44aa710bcf4d0accf5, type: 2}
+  activeSquad:
+  - {fileID: 11400000, guid: 258ae21aaac4c1b468ae54725297f644, type: 2}
   availableFactions:
-  - {fileID: 0}
-  selectedFaction: {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
+  - {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
+  - {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
+  activeFactions:
+  - {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
+  - {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
+  - {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
   start: {fileID: 2722136283180047193, guid: 7cab6c54e8e5360449c2bec3d60cb093, type: 3}
   signpost: {fileID: 2807226219216128232, guid: 44de2f1cfc141234b966e2aa7e9005df, type: 3}
   sessionCardPool: []
@@ -906,6 +915,24 @@ MonoBehaviour:
   playerHand: []
   mapGenerator: {fileID: 1325268002}
   handUI: {fileID: 279162213}
+--- !u!114 &1325268006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1325267997}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30621746b0845454b80b798196981993, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VoidDecorator
+  targetTilemap: {fileID: 901628910}
+  deepVoidTiles:
+  - {fileID: 11400000, guid: 7950deb7bea759141ab65aef3ca297ea, type: 2}
+  territorySpreadRadius: 8
+  mapCenter: {x: 20, y: 20}
+  heroOutwardBuffer: 1.5
 --- !u!1 &1357295965
 GameObject:
   m_ObjectHideFlags: 0

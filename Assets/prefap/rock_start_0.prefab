@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 4930792088378952795}
   - component: {fileID: 2880242742495084681}
   m_Layer: 0
-  m_Name: Yelow_0
+  m_Name: rock_start_0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -7364975316840773393, guid: b861cafadf2807743b7b0358b7dad542, type: 3}
+  m_Sprite: {fileID: 3463901046412612434, guid: 502132004b545ba44b7aebd5bfe0fa20, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

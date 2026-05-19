@@ -16,4 +16,6 @@ MonoBehaviour:
   factionRoadTile: {fileID: 11400000, guid: ef2de6fb646c00a40a1b395d5bd96737, type: 2}
   extraFoundations: 0
   factionCards:
-  - {fileID: 11400000, guid: a111c2ffd56dee74abb1ff55bc30c3c0, type: 2}
+  - {fileID: 11400000, guid: 0e365c9ea74b94d40a35e1187493f4ce, type: 2}
+  territoryVoidTiles:
+  - {fileID: 11400000, guid: 2def5b7ba024b9140ba6fd27697468ce, type: 2}

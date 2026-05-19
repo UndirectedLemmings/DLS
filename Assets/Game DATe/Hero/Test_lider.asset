@@ -12,8 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f401e98985af744a955e5f416850f25, type: 3}
   m_Name: Test_lider
   m_EditorClassIdentifier: Assembly-CSharp::HeroData
-  heroName: 
-  heroRoadTile: {fileID: 0}
-  heroMainCards: []
+  heroName: Test_Lid
+  heroRoadTile: {fileID: 11400000, guid: eec4568edadeb484cbda19729d4b0fcd, type: 2}
+  heroMainCards:
+  - {fileID: 11400000, guid: a111c2ffd56dee74abb1ff55bc30c3c0, type: 2}
   heroSupportCards: []
   bonusFoundations: 0
+  territoryVoidTiles:
+  - {fileID: 11400000, guid: de6f5c77eb729d44cb8af9633ccdc1df, type: 2}

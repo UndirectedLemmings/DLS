@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HeroData
   heroName: Test_hero
   heroRoadTile: {fileID: 11400000, guid: eec4568edadeb484cbda19729d4b0fcd, type: 2}
+  heroMainCards: []
+  heroSupportCards:
+  - {fileID: 11400000, guid: 9f232edb2151c3b48b0701457014425b, type: 2}
   bonusFoundations: 0
-  heroCards:
-  - {fileID: 11400000, guid: a111c2ffd56dee74abb1ff55bc30c3c0, type: 2}
+  territoryVoidTiles:
+  - {fileID: 11400000, guid: eec4568edadeb484cbda19729d4b0fcd, type: 2}

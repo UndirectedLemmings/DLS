@@ -13,4 +13,7 @@ public class FactionData : ScriptableObject
 
     [Header("Карты зданий фракции")]
     public List<CardData> factionCards = new List<CardData>();
+
+    [Header("Территория (Фон вокруг дороги)")]
+    public UnityEngine.Tilemaps.TileBase[] territoryVoidTiles;
 }  
