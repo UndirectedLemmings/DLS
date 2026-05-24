@@ -82,7 +82,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 9223281205862475781, guid: b219ae64c1d1e124a9690dcb70183678, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -164,5 +164,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bffe3f4d113b75241b90ca29a08ba322, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CoordinateSwitcher
-  routeA: []
-  routeB: []
+  pathA: []
+  pathB: []

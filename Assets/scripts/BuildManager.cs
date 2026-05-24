@@ -69,6 +69,9 @@ public class BuildManager : MonoBehaviour
                 {
                     Vector2Int logicalPos = new Vector2Int(cellPos.x, cellPos.y);
                     buildingLogic.InitializeAt(logicalPos);
+
+                    // --- НОВОЕ: Запрещаем спавн на этой клетке ---
+                    GridGameController.Instance.logic.buildingsOnMap.Add(logicalPos);
                 }
 
                 FILL_MAP_v4.FoundationCells.Remove(cellPos);

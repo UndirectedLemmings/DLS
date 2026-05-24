@@ -58,6 +58,29 @@ public class GridGameController : MonoBehaviour
             else
                 Debug.Log("Вне игровой зоны");
         }
+
+        if (Input.GetMouseButtonDown(1))
+        {
+            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+
+            // Пускаем луч в 2D пространстве в точку клика
+            RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
+
+            if (hit.collider != null)
+            {
+                // Пытаемся найти на объекте НАШ УНИВЕРСАЛЬНЫЙ ИНТЕРФЕЙС
+                IMapInteractable interactableObj = hit.collider.GetComponent<IMapInteractable>();
+
+                if (interactableObj != null)
+                {
+                    // Объект поддерживает подсказки! Получаем текст.
+                    string infoText = interactableObj.GetDescription();
+
+                    // Пока выводим в консоль
+                    Debug.Log($"DLS-ПОДСКАЗКА: \n{infoText}");
+                }
+            }
+        }
     }
 
     public Vector3 GetWorldPosition(Vector2Int logicPos)

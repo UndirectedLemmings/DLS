@@ -9,7 +9,11 @@ public class RoadSegmentManager : MonoBehaviour
     public FactionData ownerFaction;
 
     [Header("Spawn Settings")]
-    public float spawnInterval = 10f; // Как часто дорога пытается заспавнить моба
+    public float spawnInterval = 10f;
+
+    // НОВОЕ: Шанс стакинга (например, 25%)
+    [Range(0f, 1f)]
+    public float stackChance = 0.25f;
 
     // Пул существ дороги
     [SerializeField] private List<EnemyData> spawnPool = new List<EnemyData>();
@@ -53,33 +57,75 @@ public class RoadSegmentManager : MonoBehaviour
 
     private void SpawnRandomCreature()
     {
-        // Ищем свободные клетки на этой дороге
         List<Vector2Int> emptyCells = new List<Vector2Int>();
+        List<Vector2Int> occupiedByEnemies = new List<Vector2Int>();
+
         foreach (Vector2Int cell in roadCells)
         {
-            // ПРЕДПОЛОЖЕНИЕ: У твоего LogicalGrid есть метод проверки
-            if (GridGameController.Instance.logic.IsCellEmptyAndValid(cell))
+            Vector3Int v3Cell = new Vector3Int(cell.x, cell.y, 0);
+
+            // --- ОБНОВЛЕННАЯ ПРОВЕРКА ---
+            // Если тут фундамент, ИЛИ здание, ИЛИ перекресток — пропускаем!
+            if (FILL_MAP_v4.FoundationCells.Contains(v3Cell) ||
+                GridGameController.Instance.logic.buildingsOnMap.Contains(cell) ||
+                FILL_MAP_v4.IntersectionCells.Contains(v3Cell)) // <--- Добавили проверку перекрестка
+            {
+                continue;
+            }
+
+            // 2. Разделяем клетки
+            if (GridGameController.Instance.logic.GetEnemyAt(cell) != null)
+            {
+                occupiedByEnemies.Add(cell);
+            }
+            else
             {
                 emptyCells.Add(cell);
             }
         }
 
-        if (emptyCells.Count == 0) return; // Нет места для спавна
+        if (emptyCells.Count == 0 && occupiedByEnemies.Count == 0) return;
 
-        // Выбираем случайную пустую клетку
-        Vector2Int spawnPos = emptyCells[Random.Range(0, emptyCells.Count)];
-
-        // Берем случайного моба из пула
         EnemyData enemyToSpawn = spawnPool[Random.Range(0, spawnPool.Count)];
 
-        // Инстанциируем префаб
-        // ПРЕДПОЛОЖЕНИЕ: У тебя есть метод перевода Grid координат в World координаты
-        Vector3 worldPos = GridGameController.Instance.GetWorldPosition(spawnPos);
-        GameObject enemyObj = Instantiate(enemyToSpawn.enemyPrefab, worldPos, Quaternion.identity);
+        // --- ЛОГИКА УСИЛЕНИЯ (СТАКИНГА) ---
+        if (Random.value <= stackChance && occupiedByEnemies.Count > 0)
+        {
+            Vector2Int stackPos = occupiedByEnemies[Random.Range(0, occupiedByEnemies.Count)];
+            GameObject existingEnemyObj = GridGameController.Instance.logic.GetEnemyAt(stackPos);
 
-        // Регистрируем врага в сетке (помечаем hasEnemy = true)
-        GridGameController.Instance.logic.SetEnemyAt(spawnPos, enemyObj);
+            if (existingEnemyObj != null)
+            {
+                // Ищем наш новый компонент и добавляем в него моба
+                EnemySquad squad = existingEnemyObj.GetComponent<EnemySquad>();
+                if (squad != null)
+                {
+                    squad.AddEnemy(enemyToSpawn);
+                }
+            }
+            return; // Завершаем метод
+        }
 
-        Debug.Log($"Заспавнен {enemyToSpawn.enemyName} на координатах {spawnPos}");
+        // --- ЛОГИКА ОБЫЧНОГО СПАВНА ---
+        if (emptyCells.Count > 0)
+        {
+            Vector2Int spawnPos = emptyCells[Random.Range(0, emptyCells.Count)];
+            Vector3 worldPos = GridGameController.Instance.GetWorldPosition(spawnPos);
+
+            // Инстанциируем префаб
+            GameObject enemyObj = Instantiate(enemyToSpawn.enemyPrefab, worldPos, Quaternion.identity);
+
+            // НОВОЕ: Инициализируем отряд первым бойцом
+            EnemySquad newSquad = enemyObj.GetComponent<EnemySquad>();
+            if (newSquad != null)
+            {
+                newSquad.Initialize(enemyToSpawn);
+            }
+
+            // Регистрируем в сетке
+            GridGameController.Instance.logic.SetEnemyAt(spawnPos, enemyObj);
+
+            Debug.Log($"DLS: Заспавнен новый отряд {enemyToSpawn.enemyName} на координатах {spawnPos}");
+        }
     }
 }

@@ -18,5 +18,5 @@ MonoBehaviour:
   type: 0
   alignment: 1
   specificOwner: {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
-  buildingPrefab: {fileID: 6700367535818369590, guid: 799de346611cedd4db1e8e96ed449c4c, type: 3}
+  buildingPrefab: {fileID: 5935204555105438026, guid: 0766d011f169dde4ca270d5cf2a71f0f, type: 3}
   effectPower: 0

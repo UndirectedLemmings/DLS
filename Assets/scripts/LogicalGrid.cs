@@ -8,6 +8,8 @@ public class LogicalGrid
     private int gridHeight;
 
     public Dictionary<Vector2Int, GameObject> enemiesOnMap = new Dictionary<Vector2Int, GameObject>();
+    // --- НОВОЕ: Реестр построенных зданий ---
+    public HashSet<Vector2Int> buildingsOnMap = new HashSet<Vector2Int>();
 
     // Конструктор принимает значения и записывает их в новые переменные
     public LogicalGrid(int w, int h)
