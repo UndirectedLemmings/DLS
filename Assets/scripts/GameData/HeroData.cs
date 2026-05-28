@@ -3,9 +3,9 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 
 [CreateAssetMenu(fileName = "New Hero", menuName = "Game Data/Hero Design")]
-public class HeroData : ScriptableObject
+public class HeroData : UnitData
 {
-    public string heroName;
+    
     public TileBase heroRoadTile; // Используется, только если он Лидер
 
     [Header("Колоды карт")]

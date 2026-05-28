@@ -1,9 +1,9 @@
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewEnemy", menuName = "Game Data/Enemy Data")]
-public class EnemyData : ScriptableObject
+public class EnemyData : UnitData
 {
-    public string enemyName;
+
     public GameObject enemyPrefab; // Префаб, который появится на карте
 
     // В будущем сюда добавим статы, например:

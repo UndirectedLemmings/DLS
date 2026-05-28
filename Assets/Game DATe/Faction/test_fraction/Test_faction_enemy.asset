@@ -12,5 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83cdbebe7c41cb441b7aacf986a4359d, type: 3}
   m_Name: Test_faction_enemy
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
-  enemyName: "\u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u043F\u0440\u043E\u0442\u0438\u0432\u043D\u0438\u043A"
+  unitName: "\u041F\u0440\u043E\u0442\u0438\u0432\u043D\u0438\u043A"
+  portrait: {fileID: -3560852360957142242, guid: 50dc229721c074546843b5ea74878e9d, type: 3}
+  defaultSide: 1
+  strength: 1
+  endurance: 1
+  will: 1
+  wisdom: 1
+  agility: 1
+  perception: 1
+  strengthXP: 0
+  enduranceXP: 0
+  willXP: 0
+  wisdomXP: 0
+  agilityXP: 0
+  perceptionXP: 0
+  maxHP: 10
+  armorValue: 0
+  weaponSlot: {fileID: 0}
+  armorSlot: {fileID: 0}
+  accessorySlot: {fileID: 0}
+  activeFeats: []
   enemyPrefab: {fileID: 902491182558126326, guid: 8c34056da78f0d0469c1ab108d219652, type: 3}

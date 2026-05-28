@@ -7,8 +7,6 @@ public class BuildManager : MonoBehaviour
     public HandManager handManager;
     public Tilemap Map; // Твоя оригинальная переменная
 
-    private CardData activeCard;
-
     // Сохраняем твою оригинальную сигнатуру метода!
     public bool TryBuildFromDrag(CardData cardToBuild, Vector3 screenMousePos)
     {

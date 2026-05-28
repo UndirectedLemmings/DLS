@@ -17,13 +17,13 @@ public class HandManager : MonoBehaviour
         List<CardData> sessionPool = new List<CardData>();
 
         // 1. Добавляем карты Лидера отряда (Главные и Вспомогательные)
-        if (mapGenerator.selectedHero != null)
+        if (mapGenerator.activeLeader != null)
         {
-            if (mapGenerator.selectedHero.heroMainCards != null)
-                sessionPool.AddRange(mapGenerator.selectedHero.heroMainCards);
+            if (mapGenerator.activeLeader.heroMainCards != null)
+                sessionPool.AddRange(mapGenerator.activeLeader.heroMainCards);
 
-            if (mapGenerator.selectedHero.heroSupportCards != null)
-                sessionPool.AddRange(mapGenerator.selectedHero.heroSupportCards);
+            if (mapGenerator.activeLeader.heroSupportCards != null)
+                sessionPool.AddRange(mapGenerator.activeLeader.heroSupportCards);
         }
 
         // 2. Добавляем Вспомогательные карты остальных членов отряда

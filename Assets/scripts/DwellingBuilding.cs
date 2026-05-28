@@ -10,7 +10,7 @@ public class DwellingBuilding : MonoBehaviour, IBuildingLogic, IMapInteractable
     public string GetDescription()
     {
         if (spawnedCreature != null)
-            return $"Жилище фракции\nПризывает: {spawnedCreature.enemyName}";
+            return $"Жилище фракции\nПризывает: {spawnedCreature.unitName}";
         return "Разрушенное жилище";
     }
 
@@ -26,7 +26,7 @@ public class DwellingBuilding : MonoBehaviour, IBuildingLogic, IMapInteractable
 
             // Выводим красивый лог с именем фракции для проверки
             string factionName = attachedRoad.ownerFaction != null ? attachedRoad.ownerFaction.name : "Неизвестно";
-            Debug.Log($"DLS: Жилище активно! {spawnedCreature.enemyName} добавлен в пул дороги фракции {factionName}.");
+            Debug.Log($"DLS: Жилище активно! {spawnedCreature.unitName} добавлен в пул дороги фракции {factionName}.");
         }
         else
         {

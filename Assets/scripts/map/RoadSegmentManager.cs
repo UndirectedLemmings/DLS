@@ -29,7 +29,7 @@ public class RoadSegmentManager : MonoBehaviour
         if (creature != null)
         {
             spawnPool.Add(creature);
-            Debug.Log($"В пул дороги добавлен: {creature.enemyName}");
+            Debug.Log($"В пул дороги добавлен: {creature.unitName}");
         }
     }
 
@@ -38,7 +38,7 @@ public class RoadSegmentManager : MonoBehaviour
         if (spawnPool.Contains(creature))
         {
             spawnPool.Remove(creature);
-            Debug.Log($"Из пула дороги удален: {creature.enemyName}");
+            Debug.Log($"Из пула дороги удален: {creature.unitName}");
         }
     }
 
@@ -125,7 +125,7 @@ public class RoadSegmentManager : MonoBehaviour
             // Регистрируем в сетке
             GridGameController.Instance.logic.SetEnemyAt(spawnPos, enemyObj);
 
-            Debug.Log($"DLS: Заспавнен новый отряд {enemyToSpawn.enemyName} на координатах {spawnPos}");
+            Debug.Log($"DLS: Заспавнен новый отряд {enemyToSpawn.unitName} на координатах {spawnPos}");
         }
     }
 }

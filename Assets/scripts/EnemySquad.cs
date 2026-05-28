@@ -13,7 +13,7 @@ public class EnemySquad : MonoBehaviour, IMapInteractable
     {
         if (squadMembers.Count == 0) return "Пустой флаг (ошибка)";
 
-        string name = squadMembers[0].enemyName;
+        string name = squadMembers[0].unitName;
         int count = squadMembers.Count;
 
         // Возвращаем красивую строку. Знак \n делает перенос на новую строку
@@ -36,7 +36,7 @@ public class EnemySquad : MonoBehaviour, IMapInteractable
     {
         squadMembers.Add(newEnemy);
         UpdateVisuals();
-        Debug.Log($"DLS: В отряд добавлен {newEnemy.enemyName}. Теперь в отряде {squadMembers.Count} бойцов.");
+        Debug.Log($"DLS: В отряд добавлен {newEnemy.unitName}. Теперь в отряде {squadMembers.Count} бойцов.");
     }
 
     /// <summary>

@@ -5,13 +5,6 @@ using UnityEngine.Tilemaps;
 
 public class FILL_MAP_v4 : MonoBehaviour
 {
-    [Header("Настройки сложности")]
-    [Range(1, 10)] public int difficultyLevel = 1; // Уровень сложности карты
-
-    [Header("Настройки фундаментов")]
-    [Range(0, 5)] public int minFoundationsPerRoad = 1; // Минимальное число на одном отрезке пути
-    [Range(1, 10)] public int maxFoundationsPerRoad = 3; // Максимальное число на одном отрезке пути
-
     [Header("Визуализация границ")]
     public LineRenderer borderLineRenderer;
 
@@ -23,13 +16,14 @@ public class FILL_MAP_v4 : MonoBehaviour
     [Header("Постобработка")]
     public VoidDecorator voidDecorator;
 
-    // Глобальный реестр зон влияния (Клетка дороги -> Тайлы её пустоты)
-    public Dictionary<Vector3Int, UnityEngine.Tilemaps.TileBase[]> territoryMap = new Dictionary<Vector3Int, UnityEngine.Tilemaps.TileBase[]>();
+    [Header("Настройки сложности")]
+    [Range(1, 10)] public int difficultyLevel = 1; // Уровень сложности карты
 
-    // Список для хранения объектов, чтобы мы могли их удалить при неудачной генерации
-    private List<GameObject> tempMapObjects = new List<GameObject>();
+    [Header("Настройки фундаментов")]
+    [Range(0, 5)] public int minFoundationsPerRoad = 1; // Минимальное число на одном отрезке пути
+    [Range(1, 10)] public int maxFoundationsPerRoad = 3; // Максимальное число на одном отрезке пути
 
-    public static Dictionary<Vector3Int, ScriptableObject> cellOwners = new Dictionary<Vector3Int, ScriptableObject>();
+   
 
     // --- НОВОЕ: ТРИ РАЗДЕЛЬНЫХ СЛОЯ ВМЕСТО ОДНОГО ---
     [Header("Слои Карты (Tilemaps)")]
@@ -37,26 +31,28 @@ public class FILL_MAP_v4 : MonoBehaviour
     public Tilemap roadsMap;       // Слой 2: Дороги
     public Tilemap foundationsMap; // Слой 3: Фундаменты
     // ------------------------------------------------
-
+    [Header("тайлы карты")]
     public TileBase VoidTile;
-    public TileBase foundationTile;// Тайл "особой зоны" для строительства
+    public TileBase foundationTile;// Тайл "особой зоны" для строительства// переместить
+    public GameObject start;
+    public GameObject signpost;
+
 
     [Header("Настройки Героя (Внутренний круг)")]
     public List<HeroData> availableHeroes;
-    public HeroData selectedHero;          // Наш Лидер отряда
+    public HeroData activeLeader;          // Наш Лидер отряда
     public List<HeroData> activeSquad;     // ОСТАЛЬНОЙ ОТРЯД (спутники лидера, от 0 до 3 героев)
 
     [Header("Настройки Фракций (Внешний круг)")]
     public List<FactionData> activeFactions;
 
-    public GameObject start;
-    public GameObject signpost;
-
-
+    public Dictionary<Vector3Int, UnityEngine.Tilemaps.TileBase[]> territoryMap = new Dictionary<Vector3Int, UnityEngine.Tilemaps.TileBase[]>();// Глобальный реестр зон влияния (Клетка дороги -> Тайлы её пустоты)
+    public static Dictionary<Vector3Int, ScriptableObject> cellOwners = new Dictionary<Vector3Int, ScriptableObject>();// Список для хранения объектов, чтобы мы могли их удалить при неудачной генерации
     public static HashSet<Vector3Int> FoundationCells = new HashSet<Vector3Int>(); // Реестр фундаментов
     public static HashSet<Vector3Int> IntersectionCells = new HashSet<Vector3Int>();// Реестр всех перекрестков на карте
     public static Dictionary<Vector3Int, CoordinateSwitcher> GlobalWaypoints = new Dictionary<Vector3Int, CoordinateSwitcher>();
     private HashSet<Vector3Int> globalOccupiedCells = new HashSet<Vector3Int>();
+    private List<GameObject> tempMapObjects = new List<GameObject>();
 
     Vector3Int Vector_Start;
 
@@ -67,7 +63,6 @@ public class FILL_MAP_v4 : MonoBehaviour
         globalOccupiedCells.Clear();
         territoryMap.Clear();
         cellOwners.Clear();
-
         // --- ВЕРНУЛИ ЗАЛИВКУ ВОЙДОМ ---
         int overscan = 20;
 
@@ -164,7 +159,7 @@ public class FILL_MAP_v4 : MonoBehaviour
 
         if (voidDecorator != null)
         {
-            voidDecorator.Decorate(mapWidth, mapHeight, globalOccupiedCells, territoryMap, selectedHero.territoryVoidTiles);
+            voidDecorator.Decorate(mapWidth, mapHeight, globalOccupiedCells, territoryMap, activeLeader.territoryVoidTiles);
         }
 
         GridGameController.Instance.InitializeGrid(mapWidth, mapHeight);
@@ -180,10 +175,10 @@ public class FILL_MAP_v4 : MonoBehaviour
         List<Vector3Int> pathA = FindPathAStar(startPoint, endPoint, new HashSet<Vector3Int>(), false, loopCenter);
         if (pathA == null || pathA.Count == 0) return false;
 
-        DrawAndRegisterPath(pathA, selectedHero.heroRoadTile, selectedHero.territoryVoidTiles, selectedHero);
+        DrawAndRegisterPath(pathA, activeLeader.heroRoadTile, activeLeader.territoryVoidTiles, activeLeader);
 
-        int minA = Mathf.Max(0, minFoundationsPerRoad + selectedHero.bonusFoundations);
-        int maxA = Mathf.Max(minA, maxFoundationsPerRoad + selectedHero.bonusFoundations);
+        int minA = Mathf.Max(0, minFoundationsPerRoad + activeLeader.bonusFoundations);
+        int maxA = Mathf.Max(minA, maxFoundationsPerRoad + activeLeader.bonusFoundations);
         GenerateFoundations(pathA, minA, maxA);
 
         switcher.pathA = pathA;
@@ -217,7 +212,7 @@ public class FILL_MAP_v4 : MonoBehaviour
             }
             else
             {
-                DrawAndRegisterPath(pathB, selectedHero.heroRoadTile, selectedHero.territoryVoidTiles, selectedHero);
+                DrawAndRegisterPath(pathB, activeLeader.heroRoadTile, activeLeader.territoryVoidTiles, activeLeader);
             }
 
             int minB = Mathf.Max(0, minFoundationsPerRoad + segmentFaction.extraFoundations);
@@ -277,12 +272,13 @@ public class FILL_MAP_v4 : MonoBehaviour
     {
         foreach (Vector3Int p in path)
         {
-            if (globalOccupiedCells.Contains(p) && currentTile != selectedHero.heroRoadTile) continue;
+            if (globalOccupiedCells.Contains(p) && currentTile != activeLeader.heroRoadTile) continue;
 
-            // --- НОВОЕ: Рисуем дороги только на слое дорог ---
+            // 1. Рисуем дорогу на слое дорог (Слой 1)
             roadsMap.SetTile(p, currentTile);
             globalOccupiedCells.Add(p);
 
+            // 2. Регистрация владельца
             if (owner != null)
             {
                 if (!cellOwners.ContainsKey(p))
@@ -295,9 +291,15 @@ public class FILL_MAP_v4 : MonoBehaviour
                 }
             }
 
+            // 3. Заполняем словарь территорий и КЛАДЕМ БИОМ ПОД ДОРОГУ (Слой 0)
             if (voidTiles != null && voidTiles.Length > 0)
             {
                 territoryMap[p] = voidTiles;
+
+                
+                TileBase randomBiomeTile = voidTiles[Random.Range(0, voidTiles.Length)];
+                landscapeMap.SetTile(p, randomBiomeTile);
+                // ---------------------------------------------------------------------
             }
         }
     }
@@ -531,13 +533,13 @@ public class FILL_MAP_v4 : MonoBehaviour
     {
         sessionCardPool.Clear();
 
-        if (selectedHero != null && selectedHero.heroMainCards != null)
+        if (activeLeader != null && activeLeader.heroMainCards != null)
         {
-            sessionCardPool.AddRange(selectedHero.heroMainCards);
+            sessionCardPool.AddRange(activeLeader.heroMainCards);
 
-            if (selectedHero.heroSupportCards != null)
+            if (activeLeader.heroSupportCards != null)
             {
-                sessionCardPool.AddRange(selectedHero.heroSupportCards);
+                sessionCardPool.AddRange(activeLeader.heroSupportCards);
             }
         }
 
@@ -548,7 +550,7 @@ public class FILL_MAP_v4 : MonoBehaviour
                 if (companion != null && companion.heroSupportCards != null)
                 {
                     sessionCardPool.AddRange(companion.heroSupportCards);
-                    Debug.Log($"Спутник {companion.heroName} добавил свои карты поддержки в пул.");
+                    Debug.Log($"Спутник {companion.unitName} добавил свои карты поддержки в пул.");
                 }
             }
         }

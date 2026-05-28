@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems; // Обязательно для событий перетаскивания
-using UnityEngine.UI;
 
 // Подключаем нужные интерфейсы
 public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
