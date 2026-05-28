@@ -62,7 +62,7 @@ public class RoadSegmentManager : MonoBehaviour
 
         foreach (Vector2Int cell in roadCells)
         {
-            Vector3Int v3Cell = new Vector3Int(cell.x, cell.y, 0);
+            Vector2Int v3Cell = new Vector2Int(cell.x, cell.y);
 
             // --- ОБНОВЛЕННАЯ ПРОВЕРКА ---
             // Если тут фундамент, ИЛИ здание, ИЛИ перекресток — пропускаем!

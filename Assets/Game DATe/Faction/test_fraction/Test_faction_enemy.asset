@@ -27,7 +27,7 @@ MonoBehaviour:
   wisdomXP: 0
   agilityXP: 0
   perceptionXP: 0
-  maxHP: 10
+  maxHP: 1
   armorValue: 0
   weaponSlot: {fileID: 0}
   armorSlot: {fileID: 0}

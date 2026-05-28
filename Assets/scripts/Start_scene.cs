@@ -1,49 +1,46 @@
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
-using UnityEngine.Tilemaps;
 using UnityEngine.UI;
-
-
-
+using UnityEngine.Tilemaps;
 
 public class Start_scene : MonoBehaviour
-
 {
     public Tilemap Tilemap;
-    public Character_move character;//персонажа
-    public FILL_MAP_v4 FMT;//карта
+    public Character_move character; // префаб персонажа
+    public FILL_MAP_v4 FMT; // генератор карты
     public Text round;
-    Character_move character_clone;
+
+    private Character_move character_clone;
+
     public void Start()
     {
-
         if (FMT != null)
         {
             FMT.StartGenerationWithRetries();
-        } 
+        }
         else
-        { Debug.LogError("Забыл перетащить");
+        {
+            Debug.LogError("Забыл перетащить FMT");
             return;
         }
 
-        // Получаем координаты старта
-        Vector3Int startVector = FMT.Get_Start_road();
+        // --- ИСПРАВЛЕНО 1: Принимаем Vector2Int из обновленного генератора ---
+        Vector2Int startVector = FMT.Get_Start_road();
 
-        // Спавним героя (сохраняем твой наклон)
-        character_clone = Instantiate(character, Tilemap.GetCellCenterWorld(startVector), UnityEngine.Quaternion.Euler(45, 0, 0));
+        // --- ИСПРАВЛЕНО 2: Создаем Vector3Int локально ТОЛЬКО для запроса позиции у Tilemap ---
+        Vector3Int tilemapPos = new Vector3Int(startVector.x, startVector.y, 0);
+
+        // Спавним героя
+        character_clone = Instantiate(character, Tilemap.GetCellCenterWorld(tilemapPos), UnityEngine.Quaternion.Euler(45, 0, 0));
 
         // Передаем карту
         character_clone.Tilemap = Tilemap;
 
-        // БОЛЬШЕ НЕ ПЕРЕДАЕМ target_Vint! 
-        // Вместо этого активируем его мозг, передав точку старта:
+        // Передаем 2D-координаты старта в обновленный мозг героя
         character_clone.StartJourney(startVector);
 
         round.text = ("круги=" + character_clone.Round().ToString());
     }
 
-    // Важно добавить проверку на null, чтобы не было ошибок, если герой еще не заспавнился
     public void RefreshRoundUI()
     {
         if (character_clone != null)
@@ -52,7 +49,6 @@ public class Start_scene : MonoBehaviour
 
     public void Update()
     {
-        
-
+        // Пока пусто
     }
 }
