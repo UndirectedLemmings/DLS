@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Test_Faction
   m_EditorClassIdentifier: Assembly-CSharp::FactionData
   factionName: Test_Faction
-  factionRoadTile: {fileID: 11400000, guid: ac78e2d63abd4504891ee952d174e56e, type: 2}
+  factionRoadTile: {fileID: 11400000, guid: 4c0784ac77ae4b343951a4d20eb95191, type: 2}
   extraFoundations: 0
   factionCards:
   - {fileID: 11400000, guid: 0e365c9ea74b94d40a35e1187493f4ce, type: 2}
   territoryVoidTiles:
-  - {fileID: 11400000, guid: 2def5b7ba024b9140ba6fd27697468ce, type: 2}
+  - {fileID: 11400000, guid: cce628bf581b195469777d33ca0b1d80, type: 2}
+  - {fileID: 11400000, guid: 9b58cb5586ab04649be834608bd6675a, type: 2}

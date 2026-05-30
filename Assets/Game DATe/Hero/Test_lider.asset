@@ -39,4 +39,4 @@ MonoBehaviour:
   heroSupportCards: []
   bonusFoundations: 0
   territoryVoidTiles:
-  - {fileID: 11400000, guid: de6f5c77eb729d44cb8af9633ccdc1df, type: 2}
+  - {fileID: 11400000, guid: aa4d1511380fb8b4fbc9fc4412103e2b, type: 2}
