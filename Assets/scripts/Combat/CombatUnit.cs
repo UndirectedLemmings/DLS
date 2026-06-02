@@ -30,6 +30,8 @@ public class CombatUnit
     public bool IsAttacker { get; private set; }
     public int SlotIndex { get; private set; }
 
+    private FeatController featController;
+
     public CombatUnit(UnitData data, bool isAttacker, int slotIndex)
     {
         BaseData = data;
@@ -40,13 +42,29 @@ public class CombatUnit
         HealthyEP = Mathf.Max(1, data.endurance);
         TiredEP = 0;
         WoundedEP = 0;
+
+        featController = new FeatController(data.activeFeats, this);
     }
 
-    public void TakeWounds(int woundsAmount)
+    public void ApplyEnduranceModifier(int bonusAmount)
     {
-        if (woundsAmount <= 0 || IsDead) return;
+        bonusEndurance += bonusAmount;
 
-        for (int i = 0; i < woundsAmount; i++)
+        // Прибавляем или отнимаем здоровье
+        HealthyEP += bonusAmount;
+
+        // Защита от ухода в минус при снятии баффов
+        if (HealthyEP < 0) HealthyEP = 0;
+    }
+
+    public void TakeWounds(int incomingDamage)
+    {
+        int reduction = featController != null ? featController.CurrentDamageReduction : 0;
+        int finalDamage = Mathf.Max(0, incomingDamage - reduction);
+
+        if (finalDamage <= 0 || IsDead) return;
+
+        for (int i = 0; i < finalDamage; i++)
         {
             if (TiredEP > 0)
             {

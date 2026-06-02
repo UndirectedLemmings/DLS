@@ -41,7 +41,7 @@ public class UnitData : ScriptableObject
 
     [Header("Таланты и Особенности")]
     // Список всех активных фитов существа (можно пополнять прямо во время игры)
-    public List<ScriptableObject> activeFeats = new List<ScriptableObject>();
+    public List<FeatData> activeFeats = new List<FeatData>();
 
 
 }
