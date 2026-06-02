@@ -3,6 +3,8 @@ using UnityEngine;
 public class CombatUnit
 {
     public UnitData BaseData { get; private set; }
+    public FeatController featController;
+    public EquipmentController equipmentController;
 
     [Header("СОСТОЯНИЯ ВЫНОСЛИВОСТИ (EP)")]
     public int HealthyEP { get; private set; }
@@ -30,8 +32,6 @@ public class CombatUnit
     public bool IsAttacker { get; private set; }
     public int SlotIndex { get; private set; }
 
-    private FeatController featController;
-
     public CombatUnit(UnitData data, bool isAttacker, int slotIndex)
     {
         BaseData = data;
@@ -43,7 +43,16 @@ public class CombatUnit
         TiredEP = 0;
         WoundedEP = 0;
 
+        // 1. Создаем контроллер фитов (ты это уже сделал ранее)
         featController = new FeatController(data.activeFeats, this);
+
+        // 2. Создаем контроллер экипировки, передавая ему FeatController
+        equipmentController = new EquipmentController(featController);
+
+        // 3. Считываем предметы из UnitData и надеваем их
+        if (data.weaponSlot != null) equipmentController.EquipItem(data.weaponSlot);
+        if (data.armorSlot != null) equipmentController.EquipItem(data.armorSlot);
+        if (data.accessorySlot != null) equipmentController.EquipItem(data.accessorySlot);
     }
 
     public void ApplyEnduranceModifier(int bonusAmount)

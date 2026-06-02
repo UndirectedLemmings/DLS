@@ -33,11 +33,9 @@ public class UnitData : ScriptableObject
     public int armorValue = 0;
 
     [Header("Экипировка (Слоты)")]
-    // Пока оставим их как GameObject или строки для примера, 
-    // позже создадим отдельный класс ItemData
-    public ScriptableObject weaponSlot;
-    public ScriptableObject armorSlot;
-    public ScriptableObject accessorySlot;
+    public ItemData weaponSlot;
+    public ItemData armorSlot;
+    public ItemData accessorySlot;
 
     [Header("Таланты и Особенности")]
     // Список всех активных фитов существа (можно пополнять прямо во время игры)

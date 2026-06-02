@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 
-
 public enum FeatDurationType
 {
     CombatRounds,    // Спадает в бою (в конце каждого раунда)
@@ -20,14 +19,18 @@ public class ActiveFeat
         DurationType = durationType;
     }
 }
+
 public class FeatController
 {
-
     private CombatUnit unit;
     private List<FeatData> baseFeats; // Врожденные фиты (из UnitData)
 
     // Список для временных баффов/дебаффов
     public List<ActiveFeat> temporaryFeats = new List<ActiveFeat>();
+
+    // НОВОЕ: Список для фитов от экипировки (без таймеров)
+    public List<FeatData> equipmentFeats = new List<FeatData>();
+
     public int CurrentBonusDamage { get; private set; }
     public int CurrentDamageReduction { get; private set; }
 
@@ -54,13 +57,15 @@ public class FeatController
         RecalculateCombatBonuses();
     }
 
-    // --- НОВЫЙ ФУНКЦИОНАЛ ДЛЯ ВРЕМЕННЫХ ФИТОВ ---
+    // --- НОВЫЙ ФУНКЦИОНАЛ ДЛЯ ЭКИПИРОВКИ ---
 
-    public void AddTemporaryFeat(FeatData feat, int duration, FeatDurationType type)
+    public void AddEquipmentFeat(FeatData feat)
     {
-        temporaryFeats.Add(new ActiveFeat(feat, duration, type));
+        if (feat == null || equipmentFeats.Contains(feat)) return;
 
-        // Если бафф дает плюс/минус к здоровью, применяем мгновенно
+        equipmentFeats.Add(feat);
+
+        // Сразу применяем бонус к здоровью, если он есть
         if (feat.triggerType == FeatType.PassiveStats && feat.bonusEndurance != 0)
         {
             unit.ApplyEnduranceModifier(feat.bonusEndurance);
@@ -69,13 +74,63 @@ public class FeatController
         RecalculateCombatBonuses();
     }
 
-    // Вызывать из CombatManager.cs в конце каждого раунда боя
+    public void RemoveEquipmentFeat(FeatData feat)
+    {
+        if (feat == null || !equipmentFeats.Contains(feat)) return;
+
+        equipmentFeats.Remove(feat);
+
+        // Откатываем бонус к здоровью
+        if (feat.triggerType == FeatType.PassiveStats && feat.bonusEndurance != 0)
+        {
+            unit.ApplyEnduranceModifier(-feat.bonusEndurance);
+        }
+
+        RecalculateCombatBonuses();
+    }
+
+    // --- ФУНКЦИОНАЛ ДЛЯ ВРЕМЕННЫХ ФИТОВ (Без изменений) ---
+
+    public void AddTemporaryFeat(FeatData newFeat, int duration, FeatDurationType type)
+    {
+        bool isMutuallyDestroyed = false;
+
+        // Идем с конца, так как можем удалять элементы из списка
+        for (int i = temporaryFeats.Count - 1; i >= 0; i--)
+        {
+            var existingFeat = temporaryFeats[i].Feat;
+
+            // Проверяем, есть ли тег существующего фита в списке "отменяемых" у нового фита
+            if (!string.IsNullOrEmpty(existingFeat.effectTag) &&
+                newFeat.cancelsTags.Contains(existingFeat.effectTag))
+            {
+                RemoveTemporaryFeat(temporaryFeats[i]);
+                temporaryFeats.RemoveAt(i);
+                isMutuallyDestroyed = true;
+            }
+        }
+
+        if (isMutuallyDestroyed)
+        {
+            RecalculateCombatBonuses();
+            return;
+        }
+
+        temporaryFeats.Add(new ActiveFeat(newFeat, duration, type));
+
+        if (newFeat.triggerType == FeatType.PassiveStats && newFeat.bonusEndurance != 0)
+        {
+            unit.ApplyEnduranceModifier(newFeat.bonusEndurance);
+        }
+
+        RecalculateCombatBonuses();
+    }
+
     public void TickCombatRounds()
     {
         TickFeats(FeatDurationType.CombatRounds);
     }
 
-    // Вызывать на глобальной карте после битвы или ивента
     public void TickAdventureEvents()
     {
         TickFeats(FeatDurationType.AdventureEvents);
@@ -85,7 +140,6 @@ public class FeatController
     {
         bool statsChanged = false;
 
-        // Идем с конца списка, так как можем удалять элементы
         for (int i = temporaryFeats.Count - 1; i >= 0; i--)
         {
             var activeFeat = temporaryFeats[i];
@@ -111,20 +165,20 @@ public class FeatController
 
     private void RemoveTemporaryFeat(ActiveFeat activeFeat)
     {
-        // Когда эффект заканчивается, нужно "откатить" изменение здоровья
         if (activeFeat.Feat.triggerType == FeatType.PassiveStats && activeFeat.Feat.bonusEndurance != 0)
         {
-            // Отнимаем то, что добавили
             unit.ApplyEnduranceModifier(-activeFeat.Feat.bonusEndurance);
         }
     }
 
-    // Метод пересчитывает Броню и Урон, суммируя базу и временные эффекты
+    // --- ОБНОВЛЕННЫЙ ПЕРЕСЧЕТ ---
+
     private void RecalculateCombatBonuses()
     {
         CurrentBonusDamage = 0;
         CurrentDamageReduction = 0;
 
+        // 1. Считаем базу
         foreach (var feat in baseFeats)
         {
             if (feat.triggerType == FeatType.PassiveStats)
@@ -134,6 +188,17 @@ public class FeatController
             }
         }
 
+        // 2. Считаем экипировку (НОВОЕ)
+        foreach (var feat in equipmentFeats)
+        {
+            if (feat.triggerType == FeatType.PassiveStats)
+            {
+                CurrentBonusDamage += feat.bonusDamage;
+                CurrentDamageReduction += feat.damageReduction;
+            }
+        }
+
+        // 3. Считаем временные баффы
         foreach (var activeFeat in temporaryFeats)
         {
             if (activeFeat.Feat.triggerType == FeatType.PassiveStats)

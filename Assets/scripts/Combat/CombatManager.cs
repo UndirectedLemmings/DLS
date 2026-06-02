@@ -53,6 +53,14 @@ public class CombatManager : MonoBehaviour
         StartCoroutine(BattleLoopRoutine(heroMove, enemyPos, enemySquadObj));
     }
 
+    private void TriggerStartOfCombat()
+    {
+        foreach (var unit in playerUnits)
+        {
+            // Менеджер просто говорит: "Бой начался! Выполните свои действия!"
+            unit.featController.ExecuteTriggers(FeatType.OnCombatStart, null);
+        }
+    }
     private IEnumerator BattleLoopRoutine(Character_move hero, Vector2Int enemyPos, GameObject enemySquadObj)
     {
         bool isCombatOver = false;
