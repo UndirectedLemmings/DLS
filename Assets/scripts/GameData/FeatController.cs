@@ -163,12 +163,59 @@ public class FeatController
         }
     }
 
+    // --- ВЫЗОВ ГЛОБАЛЬНЫХ ТРИГГЕРОВ ---
+    public void TriggerAdventureStartFeats()
+    {
+        UnityEngine.Debug.Log($"<color=cyan>[ФИТ-ДИАГНОСТИКА]</color> Всего базовых фитов в списке контроллера: {baseFeats.Count}");
+
+        foreach (var feat in baseFeats)
+        {
+            // ЗАЩИТА: Если слот в инспекторе пустой - пропускаем его, чтобы не было краша
+            if (feat == null)
+            {
+                UnityEngine.Debug.Log("<color=red>[ФИТ-ДИАГНОСТИКА]</color> ВНИМАНИЕ: Найден пустой слот фита! Пропускаю...");
+                continue;
+            }
+
+            UnityEngine.Debug.Log($"<color=yellow>[ФИТ-ДИАГНОСТИКА]</color> Вижу у лидера фит: '{feat.featName}'. Его триггер = {feat.triggerType}");
+
+            if (feat.triggerType == FeatType.OnAdventureStart)
+            {
+                UnityEngine.Debug.Log($"<color=green>[ФИТ-ДИАГНОСТИКА]</color> Запускаем ExecuteEffect для {feat.featName}");
+                feat.ExecuteEffect(unit);
+            }
+        }
+    }
     private void RemoveTemporaryFeat(ActiveFeat activeFeat)
     {
         if (activeFeat.Feat.triggerType == FeatType.PassiveStats && activeFeat.Feat.bonusEndurance != 0)
         {
             unit.ApplyEnduranceModifier(-activeFeat.Feat.bonusEndurance);
         }
+    }
+
+    // --- ПОИСК ФИТОВ ПО ТЕГУ ---
+    public bool HasFeatWithTag(string tag)
+    {
+        if (string.IsNullOrEmpty(tag)) return false;
+
+        // Добавлена проверка на null для каждого элемента (feat != null)
+        foreach (var feat in baseFeats)
+        {
+            if (feat != null && feat.effectTag == tag) return true;
+        }
+
+        foreach (var feat in equipmentFeats)
+        {
+            if (feat != null && feat.effectTag == tag) return true;
+        }
+
+        foreach (var activeFeat in temporaryFeats)
+        {
+            if (activeFeat != null && activeFeat.Feat != null && activeFeat.Feat.effectTag == tag) return true;
+        }
+
+        return false;
     }
 
     // --- ОБНОВЛЕННЫЙ ПЕРЕСЧЕТ ---

@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class HandManager : MonoBehaviour
 {
+    // НОВОЕ: Создаем глобальную ссылку на этот скрипт
+    public static HandManager Instance { get; private set; }
+
     [Header("Настройки руки")]
     public int maxHandSize = 10; // Лимит карт в руке
     public List<CardData> playerHand = new List<CardData>(); // Сама рука
@@ -12,6 +15,19 @@ public class HandManager : MonoBehaviour
     public CardHandUI handUI; // Ссылка на скрипт интерфейса
 
     // Этот метод теперь вызывается из Character_move
+
+    // НОВОЕ: Инициализируем Синглтон при старте игры
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject); // Защита от дубликатов
+        }
+    }
     public void GiveRandomCardFromPool()
     {
         List<CardData> sessionPool = new List<CardData>();

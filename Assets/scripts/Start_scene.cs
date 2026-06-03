@@ -11,6 +11,9 @@ public class Start_scene : MonoBehaviour
 
     private Character_move character_clone;
 
+    // НОВОЕ: Храним живой CombatUnit нашего лидера на глобальной карте
+    public CombatUnit LeaderCombatUnit { get; private set; }
+
     public void Start()
     {
         if (FMT != null)
@@ -29,7 +32,7 @@ public class Start_scene : MonoBehaviour
         // --- ИСПРАВЛЕНО 2: Создаем Vector3Int локально ТОЛЬКО для запроса позиции у Tilemap ---
         Vector3Int tilemapPos = new Vector3Int(startVector.x, startVector.y, 0);
 
-        // Спавним героя
+        // Спавним префаб героя на карте
         character_clone = Instantiate(character, Tilemap.GetCellCenterWorld(tilemapPos), UnityEngine.Quaternion.Euler(45, 0, 0));
 
         // Передаем карту
@@ -38,17 +41,30 @@ public class Start_scene : MonoBehaviour
         // Передаем 2D-координаты старта в обновленный мозг героя
         character_clone.StartJourney(startVector);
 
-        round.text = ("круги=" + character_clone.Round().ToString());
-    }
+        // ====================================================================
+        // МАГИЯ ИНИЦИАЛИЗАЦИИ ФИТОВ ПРИ СТАРТЕ ПРИКЛЮЧЕНИЯ
+        // ====================================================================
 
-    public void RefreshRoundUI()
-    {
-        if (character_clone != null)
-            round.text = "круги=" + character_clone.Round().ToString();
-    }
+        // 1. Проверяем, назначен ли лидер в генераторе карт (FMT)
+        if (FMT.activeLeader != null)
+        {
+            // 2. Создаем для него полноценный CombatUnit в памяти.
+            // Передаем список фитов из activeLeader.activeFeats и ссылку на самого себя.
+            // Передаем FMT.activeLeader, помечаем как союзника (true) и ставим в слот 0
+            LeaderCombatUnit = new CombatUnit(FMT.activeLeader, true, 0);
 
-    public void Update()
-    {
-        // Пока пусто
+            Debug.Log($"<color=lime>[СТАРТ СЦЕНЫ]</color> Живой CombatUnit успешно создан для лидера: {LeaderCombatUnit.BaseData.unitName}");
+
+            // 3. ФИЗИЧЕСКИ запускаем триггер фитов начала приключения!
+            if (LeaderCombatUnit.featController != null)
+            {
+                LeaderCombatUnit.featController.TriggerAdventureStartFeats();
+            }
+        }
+        else
+        {
+            Debug.LogError("<color=red>[СТАРТ СЦЕНЫ]</color> Ошибка: В FILL_MAP_v4 не задан activeLeader! Невозможно инициализировать фиты.");
+        }
+        // ====================================================================
     }
 }
