@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 365050aee8136404383a12147d3bf4af, type: 3}
+  m_Name: test_hero_card
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardName: "\u041F\u043E\u0438\u0441\u043A"
+  description: "\u043E\u0442\u0440\u044F\u0434 \u0438\u0449\u0435\u0442 \u043F\u043E\u043B\u0435\u0437\u043D\u044B\u0435
+    \u0440\u0435\u0441\u0443\u0440\u0441\u044B"
+  cardArt: {fileID: 1445084137899573599, guid: a8263189349c8aa43a1d10c23621ec12, type: 3}
+  type: 1
+  alignment: 0
+  specificOwner: {fileID: 11400000, guid: ea74334add513a44aa710bcf4d0accf5, type: 2}
+  buildingPrefab: {fileID: 0}
+  effectType: 3
+  effectAmount: 0
+  buildingBlueprint: {fileID: 0}
+  goldChance: 80
+  minGold: 10
+  maxGold: 30
+  possibleBlueprints:
+  - {fileID: 11400000, guid: 0e365c9ea74b94d40a35e1187493f4ce, type: 2}
+  - {fileID: 11400000, guid: 9f232edb2151c3b48b0701457014425b, type: 2}

@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 365050aee8136404383a12147d3bf4af, type: 3}
   m_Name: test_frac_card
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: "\u041A\u0430\u0440\u0442\u0430 \u0424\u0440\u0430\u043A\u0446\u0438\u044F"
+  cardName: "\u0416\u0438\u043B\u0438\u0449\u0435 \u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0445
+    \u0411\u043E\u043B\u0432\u0430\u043D\u0447\u0438\u043A\u043E\u0432"
   description: "\u041A\u0430\u0440\u0442\u0430 \u0424\u0440\u0430\u043A\u0446\u0438\u044F"
   cardArt: {fileID: 1445084137899573599, guid: a8263189349c8aa43a1d10c23621ec12, type: 3}
   type: 0

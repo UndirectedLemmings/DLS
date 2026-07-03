@@ -15,22 +15,15 @@ MonoBehaviour:
   unitName: "\u041F\u0440\u043E\u0442\u0438\u0432\u043D\u0438\u043A"
   portrait: {fileID: -3560852360957142242, guid: 50dc229721c074546843b5ea74878e9d, type: 3}
   defaultSide: 1
-  strength: 1
-  endurance: 1
-  will: 1
-  wisdom: 1
-  agility: 1
-  perception: 1
-  strengthXP: 0
-  enduranceXP: 0
-  willXP: 0
-  wisdomXP: 0
-  agilityXP: 0
-  perceptionXP: 0
-  maxHP: 1
-  armorValue: 0
-  weaponSlot: {fileID: 0}
-  armorSlot: {fileID: 0}
-  accessorySlot: {fileID: 0}
-  activeFeats: []
+  baseStrength: 1
+  baseEndurance: 1
+  baseWill: 1
+  baseWisdom: 1
+  baseAgility: 1
+  basePerception: 1
+  startingWeapon: {fileID: 11400000, guid: acf66ce5ca734d443a28d6bf72359c14, type: 2}
+  startingArmor: {fileID: 0}
+  startingAccessory: {fileID: 0}
+  startingFeats: []
+  baseLoot: []
   enemyPrefab: {fileID: 902491182558126326, guid: 8c34056da78f0d0469c1ab108d219652, type: 3}

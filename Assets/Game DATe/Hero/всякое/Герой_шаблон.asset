@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f401e98985af744a955e5f416850f25, type: 3}
+  m_Name: "\u0413\u0435\u0440\u043E\u0439_\u0448\u0430\u0431\u043B\u043E\u043D"
+  m_EditorClassIdentifier: Assembly-CSharp::HeroData
+  unitName: 
+  portrait: {fileID: -2615874204119335, guid: 37994c5f4b854f544bde715824eb6530, type: 3}
+  defaultSide: 0
+  baseStrength: 1
+  baseEndurance: 1
+  baseWill: 1
+  baseWisdom: 1
+  baseAgility: 1
+  basePerception: 1
+  startingWeapon: {fileID: 0}
+  startingArmor: {fileID: 0}
+  startingAccessory: {fileID: 0}
+  startingFeats: []
+  heroRoadTile: {fileID: 0}
+  heroMainCards: []
+  heroSupportCards: []
+  bonusFoundations: 0
+  territoryVoidTiles: []

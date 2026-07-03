@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static FeatData;
 
 public class CombatManager : MonoBehaviour
 {
@@ -16,14 +17,19 @@ public class CombatManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
-    public void StartCombat(Character_move heroMove, List<UnitData> playerHeroes, List<UnitData> enemyUnits, Vector2Int enemyPos, GameObject enemySquadObj)
+    public void StartCombat(Character_move heroMove, List<UnitData> enemyUnits, Vector2Int enemyPos, GameObject enemySquadObj)
     {
+        // 1. --- ОБНОВЛЕНО: Берем героев строго из формации GameManager ---
         for (int i = 0; i < heroTeam.Length; i++)
         {
-            if (i < playerHeroes.Count && playerHeroes[i] != null)
-                heroTeam[i] = new CombatUnit(playerHeroes[i], true, i);
+            if (GameManager.Instance != null && GameManager.Instance.combatFormation[i] != null)
+            {
+                heroTeam[i] = new CombatUnit(GameManager.Instance.combatFormation[i], true, i);
+            }
             else
-                heroTeam[i] = null;
+            {
+                heroTeam[i] = null; // Слот пуст
+            }
         }
 
         enemyBackupQueue.Clear();
@@ -31,17 +37,16 @@ public class CombatManager : MonoBehaviour
         {
             if (enemyUnits[i] == null) continue;
 
+            // ВАЖНО: Создаем прогресс на лету, так как врагам не нужно сохранение
+            UnitProgress tempProgress = new UnitProgress(enemyUnits[i]);
+
             if (i < 4)
-                enemyTeam[i] = new CombatUnit(enemyUnits[i], false, i);
+                enemyTeam[i] = new CombatUnit(tempProgress, false, i);
             else
-                enemyBackupQueue.Enqueue(enemyUnits[i]);
+                enemyBackupQueue.Enqueue(enemyUnits[i]); // Очередь хранит шаблоны
         }
 
-        for (int i = enemyUnits.Count; i < 4; i++)
-        {
-            enemyTeam[i] = null;
-        }
-
+        // 3. Запуск интерфейса и цикла
         if (CombatUIManager.Instance != null)
         {
             CombatUIManager.Instance.ShowCombatWindow();
@@ -53,6 +58,14 @@ public class CombatManager : MonoBehaviour
         StartCoroutine(BattleLoopRoutine(heroMove, enemyPos, enemySquadObj));
     }
 
+    /*private void TriggerStartOfCombat()
+    {
+        foreach (var unit in playerUnits)
+        {
+            // Менеджер просто говорит: "Бой начался! Выполните свои действия!"
+            unit.featController.ExecuteTriggers(FeatType.OnCombatStart, null);
+        }
+    }*/
     private IEnumerator BattleLoopRoutine(Character_move hero, Vector2Int enemyPos, GameObject enemySquadObj)
     {
         bool isCombatOver = false;
@@ -70,19 +83,26 @@ public class CombatManager : MonoBehaviour
             {
                 if (activeFighter.IsDead) continue;
 
-                CombatUIManager.Instance.AddLogMessage($"--- Ходит {activeFighter.BaseData.unitName} ---");
+                // ИСПРАВЛЕНО: Теперь лог берет правильное имя (сгенерированное или из шаблона)
+                CombatUIManager.Instance.AddLogMessage($"--- Ходит {activeFighter.UnitName} ---");
 
-                CombatUnit target = null;
-                if (activeFighter.IsAttacker)
-                    target = FindTargetForUnit(activeFighter.SlotIndex, enemyTeam);
-                else
-                    target = FindTargetForUnit(activeFighter.SlotIndex, heroTeam);
+                // --- НОВЫЙ УМНЫЙ ПОИСК ЦЕЛИ ---
+                // Определяем, кого мы вообще бьем (команду противника)
+                CombatUnit[] targetTeam = activeFighter.IsAttacker ? enemyTeam : heroTeam;
+
+                // Ищем цель согласно роли (Frontline, LowestHP и т.д.)
+                CombatUnit target = GetSmartTarget(activeFighter, targetTeam);
 
                 if (target != null)
                 {
                     ExecuteAttack(activeFighter, target);
                     // Сразу обновляем визуал аренных слотов после атаки
                     CombatUIManager.Instance.UpdateArena(heroTeam, enemyTeam);
+                }
+                else
+                {
+                    // Если целей нет (все мертвы), выводим сообщение
+                    CombatUIManager.Instance.AddLogMessage($"{activeFighter.UnitName} не видит целей!");
                 }
 
                 yield return new WaitForSeconds(1.2f);
@@ -117,39 +137,83 @@ public class CombatManager : MonoBehaviour
         Debug.Log("DLS: Бой успешно завершен, объекты зачищены.");
     }
 
-    private CombatUnit FindTargetForUnit(int slotIndex, CombatUnit[] targetTeam)
+
+    private void ExecuteAttack(CombatUnit attacker, CombatUnit target)
     {
-        if (slotIndex < targetTeam.Length && targetTeam[slotIndex] != null && !targetTeam[slotIndex].IsDead)
-            return targetTeam[slotIndex];
+        CombatUIManager.Instance.AddLogMessage($"{attacker.UnitName} атакует {target.UnitName}!");
 
-        for (int i = 0; i < targetTeam.Length; i++)
+        // 1. Узнаем, какие статы диктует оружие атакующего через его контроллер фитов
+        CharacterStatType attackStatType = attacker.featController.CurrentAttackStat;
+        CharacterStatType defenseStatType = attacker.featController.CurrentDefenseStat;
+
+        // 2. Получаем числовые значения этих характеристик для обоих юнитов
+        int attackerValue = attacker.GetBattleStatValue(attackStatType);
+        int targetValue = target.GetBattleStatValue(defenseStatType);
+
+        // --- БРОСКИ НА ПОПАДАНИЕ ---
+        string attackRolls, defenseRolls;
+
+        // Используем динамически полученную атакущую характеристику
+        int attackSuccesses = DiceRoller.RollForSuccesses(
+            attackerValue,
+            attacker.CurrentWeaponBonusDice,
+            out attackRolls
+        );
+
+        // Используем динамически полученную целевую характеристику защиты
+        int defenseSuccesses = DiceRoller.RollForSuccesses(
+            targetValue,
+            0,
+            out defenseRolls
+        );
+
+        // Выводим адаптивные результаты в лог, чтобы игрок понимал, какие статы сработали
+        CombatUIManager.Instance.AddLogMessage($"Атака ({TranslateStatName(attackStatType)} {attackerValue}): {attackSuccesses} усп. {attackRolls}");
+        CombatUIManager.Instance.AddLogMessage($"Защита ({TranslateStatName(defenseStatType)} {targetValue}): {defenseSuccesses} усп. {defenseRolls}");
+
+        if (attackSuccesses > defenseSuccesses)
         {
-            if (targetTeam[i] != null && !targetTeam[i].IsDead)
-                return targetTeam[i];
-        }
-        return null;
-    }
+            // Попадание!
+            int netHits = attackSuccesses - defenseSuccesses;
 
-    private void ExecuteAttack(CombatUnit attacker, CombatUnit defender)
-    {
-        int attackSuccesses = DiceRoller.RollForSuccesses(attacker.TotalStrength, 0);
-        int defenseSuccesses = DiceRoller.RollForSuccesses(defender.TotalAgility, 0);
-        int wounds = attackSuccesses - defenseSuccesses;
+            // --- БРОСКИ НА УРОН ---
+            string damageRolls;
+            int damageSuccesses = DiceRoller.RollForSuccesses(attacker.BattleStrength, 0, out damageRolls);
 
-        if (wounds > 0)
-        {
-            defender.TakeWounds(wounds);
-            CombatUIManager.Instance.AddLogMessage($"{attacker.BaseData.unitName} наносит {wounds} ран по {defender.BaseData.unitName}!");
+            CombatUIManager.Instance.AddLogMessage($"Урон (Сила {attacker.BattleStrength}): {damageSuccesses} усп. {damageRolls}");
 
-            if (defender.IsDead)
-                CombatUIManager.Instance.AddLogMessage($"{defender.BaseData.unitName} погибает!");
+            int finalDamage = damageSuccesses + (netHits - 1);
+
+            if (finalDamage > 0)
+            {
+                CombatUIManager.Instance.AddLogMessage($"<color=red>{target.UnitName} получает {finalDamage} ран!</color>");
+                target.TakeWounds(finalDamage);
+            }
+            else
+            {
+                CombatUIManager.Instance.AddLogMessage("Броня поглотила урон!");
+            }
         }
         else
         {
-            CombatUIManager.Instance.AddLogMessage($"{defender.BaseData.unitName} парирует атаку!");
+            CombatUIManager.Instance.AddLogMessage($"{target.UnitName} успешно защищается от атаки!");
         }
     }
 
+    // Небольшой вспомогательный метод для красивого вывода статов в текстовый лог боя
+    private string TranslateStatName(CharacterStatType statType)
+    {
+        switch (statType)
+        {
+            case CharacterStatType.Strength: return "Сила";
+            case CharacterStatType.Endurance: return "Выносливость";
+            case CharacterStatType.Will: return "Воля";
+            case CharacterStatType.Wisdom: return "Мудрость";
+            case CharacterStatType.Agility: return "Ловкость";
+            case CharacterStatType.Perception: return "Восприятие";
+            default: return "Ловкость";
+        }
+    }
     private List<CombatUnit> GetSortedInitiativeQueue(CombatUnit[] heroes, CombatUnit[] enemies)
     {
         List<CombatUnit> activeFighters = new List<CombatUnit>();
@@ -187,6 +251,54 @@ public class CombatManager : MonoBehaviour
         return !isHeroAlive || !isEnemyAlive;
     }
 
+    private CombatUnit GetSmartTarget(CombatUnit attacker, CombatUnit[] enemyTeam)
+    {
+        TargetPriority priority = attacker.featController.GetTargetPriority();
+
+        CombatUnit bestTarget = null;
+        int currentBestValue = -1; // Для поиска макс/мин HP
+
+        for (int i = 0; i < enemyTeam.Length; i++)
+        {
+            CombatUnit potentialTarget = enemyTeam[i];
+
+            // Игнорируем пустые слоты и мертвецов
+            if (potentialTarget == null || potentialTarget.IsDead) continue;
+
+            switch (priority)
+            {
+                case TargetPriority.Frontline:
+                    // Возвращаем первого же попавшегося живого
+                    return potentialTarget;
+
+                case TargetPriority.Backline:
+                    // Просто перезаписываем цель. В итоге останется самый последний живой
+                    bestTarget = potentialTarget;
+                    break;
+
+                case TargetPriority.LowestHP:
+                    // Ищем наименьшее здоровье
+                    if (bestTarget == null || potentialTarget.HealthyEP < currentBestValue)
+                    {
+                        bestTarget = potentialTarget;
+                        currentBestValue = potentialTarget.HealthyEP;
+                    }
+                    break;
+
+                case TargetPriority.HighestHP:
+                    // Ищем наибольшее здоровье (или выносливость)
+                    if (bestTarget == null || potentialTarget.HealthyEP > currentBestValue)
+                    {
+                        bestTarget = potentialTarget;
+                        currentBestValue = potentialTarget.HealthyEP;
+                    }
+                    break;
+            }
+        }
+
+        // Возвращаем найденную цель (даже если Backline/HP ничего не нашли, fallback будет null)
+        return bestTarget;
+    }
     private void HandleReinforcements()
     {
         bool uiNeedsUpdate = false;
@@ -201,11 +313,12 @@ public class CombatManager : MonoBehaviour
 
             if (enemyTeam[i] == null && enemyBackupQueue.Count > 0)
             {
-                UnitData nextEnemy = enemyBackupQueue.Dequeue();
-                enemyTeam[i] = new CombatUnit(nextEnemy, false, i);
+                UnitData nextEnemyData = enemyBackupQueue.Dequeue();
+                UnitProgress nextProgress = new UnitProgress(nextEnemyData); // Тоже создаем прогресс
+                enemyTeam[i] = new CombatUnit(nextProgress, false, i);
                 uiNeedsUpdate = true;
 
-                CombatUIManager.Instance.AddLogMessage($"<color=orange>Подкрепление! {nextEnemy.unitName} выходит на поле!</color>");
+                CombatUIManager.Instance.AddLogMessage($"<color=orange>Подкрепление! {nextEnemyData.unitName} выходит на поле!</color>");
             }
         }
 

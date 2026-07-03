@@ -9,7 +9,8 @@ public class LogicalGrid
 
     public Dictionary<Vector2Int, GameObject> enemiesOnMap = new Dictionary<Vector2Int, GameObject>();
     // --- НОВОЕ: Реестр построенных зданий ---
-    public HashSet<Vector2Int> buildingsOnMap = new HashSet<Vector2Int>();
+    // ДОБАВЛЕНО: Словарь для хранения работающей логики всех построенных зданий
+    public Dictionary<Vector2Int, IBuildingLogic> buildingInstances = new Dictionary<Vector2Int, IBuildingLogic>();
 
     // Конструктор принимает значения и записывает их в новые переменные
     public LogicalGrid(int w, int h)
