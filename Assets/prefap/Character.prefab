@@ -104,6 +104,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1560b8709c9240b479404015560e9bf4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Character_move
+  gameSettings: {fileID: 11400000, guid: 60b7b1715b22bdb4e8081e9f33222f22, type: 2}
   Tilemap: {fileID: 0}
-  speed: 0.7
   crossroadWaitTime: 1

@@ -1,6 +1,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[System.Serializable]
+public struct LootEntry
+{
+    public ItemData item;
+    [Range(0, 100)]
+    public int dropChance; // Шанс выпадения (0 - 100%)
+    public int minAmount;  // Минимальное количество 
+    public int maxAmount;  // Максимальное количество
+}
+
 public enum UnitSide { Hero, Enemy, Neutral }
 
 [CreateAssetMenu(fileName = "NewUnitData", menuName = "Game Data/Unit")]
@@ -11,35 +21,23 @@ public class UnitData : ScriptableObject
     public Sprite portrait;
     public UnitSide defaultSide = UnitSide.Enemy;
 
-    [Header("Базовые характеристики (1-10)")]
-    [Range(1, 10)] public int strength = 1;     // Сила
-    [Range(1, 10)] public int endurance = 1;    // Выносливость
-    [Range(1, 10)] public int will = 1;         // Воля
-    [Range(1, 10)] public int wisdom = 1;       // Мудрость
-    [Range(1, 10)] public int agility = 1;      // Ловкость (предполагаю, она есть для уклонения)
-    [Range(1, 10)] public int perception = 1;   // Восприятие
-                                                
+    [Header("Базовые характеристики (Стартовые)")]
+    [Range(1, 10)] public int baseStrength = 1;
+    [Range(1, 10)] public int baseEndurance = 1;
+    [Range(1, 10)] public int baseWill = 1;
+    [Range(1, 10)] public int baseWisdom = 1;
+    [Range(1, 10)] public int baseAgility = 1;
+    [Range(1, 10)] public int basePerception = 1;
 
-    [HideInInspector] public int strengthXP = 0;
-    [HideInInspector] public int enduranceXP = 0;
-    [HideInInspector] public int willXP = 0;
-    [HideInInspector] public int wisdomXP = 0;
-    [HideInInspector] public int agilityXP = 0;
-    [HideInInspector] public int perceptionXP = 0;
+    [Header("Стартовая экипировка (По умолчанию)")]
+    public ItemData startingWeapon;
+    public ItemData startingArmor;
+    public ItemData startingAccessory;
 
+    [Header("Стартовые таланты")]
+    public List<FeatData> startingFeats = new List<FeatData>();
 
-    [Header("Производные параметры")]
-    public int maxHP = 10;
-    public int armorValue = 0;
-
-    [Header("Экипировка (Слоты)")]
-    public ItemData weaponSlot;
-    public ItemData armorSlot;
-    public ItemData accessorySlot;
-
-    [Header("Таланты и Особенности")]
-    // Список всех активных фитов существа (можно пополнять прямо во время игры)
-    public List<FeatData> activeFeats = new List<FeatData>();
-
-
+    // 2. ДОБАВЛЯЕМ СПИСОК ЛУТА
+    [Header("Базовый лут монстра")]
+    public List<LootEntry> baseLoot;
 }

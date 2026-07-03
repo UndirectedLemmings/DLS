@@ -7,6 +7,7 @@ public enum ItemSlotType
     Armor,
     Accessory,
 }
+
 [CreateAssetMenu(fileName = "NewItem", menuName = "Combat/Item Data")]
 public class ItemData : ScriptableObject
 {
@@ -19,6 +20,6 @@ public class ItemData : ScriptableObject
     public ItemSlotType slotType; // Куда именно надевается предмет
 
     [Header("Особенности от предмета")]
-    // Фиты, которые предмет передает герою, пока надет
+    // Фиты, которые предмет передает герою, пока надет (например, "Кровотечение" у топора)
     public List<FeatData> grantedFeats = new List<FeatData>();
 }

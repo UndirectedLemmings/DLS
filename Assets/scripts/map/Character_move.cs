@@ -1,14 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
 public class Character_move : MonoBehaviour
 {
+    [Header("Глобальные настройки")]
+    public GlobalSettingsData gameSettings;
+
     public Tilemap Tilemap;
-    public float speed = 5f;
-    public float crossroadWaitTime = 1.0f;
+    public float crossroadWaitTime = 0.5f;
+
+    // Внутренняя переменная для скорости (берется из gameSettings)
+    private float currentSpeed = 5f;
 
     private bool isMoving = false;
     private bool isWaiting = false;
@@ -17,22 +21,46 @@ public class Character_move : MonoBehaviour
     private List<Vector2Int> currentPath;
     private int waypointIndex = 0;
     private Vector2Int startNode;
-    private Vector2Int lastCheckedCell;
     private HandManager HandManager;
+
+    // --- ДОБАВЛЕНО: Публичное свойство текущей позиции для UI Эвакуации ---
+    public Vector2Int currentPosition { get; private set; }
+    private ExpeditionExitController exitUI;
+    private void Awake()
+    {
+        // Безопасное получение настроек при старте игры
+        if (gameSettings != null)
+        {
+            currentSpeed = gameSettings.heroMoveSpeed;
+        }
+        else
+        {
+            Debug.LogWarning("ВНИМАНИЕ: Файл GlobalSettingsData не назначен в Character_move! Использую скорость по умолчанию.");
+            currentSpeed = 5f;
+        }
+    }
 
     private void Start()
     {
         HandManager = FindFirstObjectByType<HandManager>();
+
+        // Находим интерфейс один раз при появлении героя, чтобы не искать каждый шаг
+        exitUI = FindFirstObjectByType<ExpeditionExitController>();
     }
 
     public void StartJourney(Vector2Int startPos)
     {
         startNode = startPos;
+        currentPosition = startPos; // Устанавливаем начальную позицию
         RequestNextRoute(startPos);
     }
 
     private void Update()
     {
+        // Проверяем, не включена ли пауза
+        if (GameManager.Instance != null && GameManager.Instance.isMapPaused)
+            return;
+
         if (!isMoving || isWaiting || currentPath == null || currentPath.Count == 0)
             return;
 
@@ -42,16 +70,9 @@ public class Character_move : MonoBehaviour
         if (enemyObj != null)
         {
             isMoving = false;
-            List<UnitData> playerUnits = new List<UnitData>();
-            FILL_MAP_v4 mapGen = FindFirstObjectByType<FILL_MAP_v4>();
 
-            if (mapGen != null)
-            {
-                if (mapGen.activeLeader != null) playerUnits.Add(mapGen.activeLeader);
-                foreach (var companion in mapGen.activeSquad)
-                    if (companion != null) playerUnits.Add(companion);
-            }
-
+            // CombatManager сам возьмет формацию напрямую из GameManager!
+            // Собираем только врагов из объекта, в который мы врезались
             List<UnitData> enemyUnits = new List<UnitData>();
             EnemySquad enemySquadComponent = enemyObj.GetComponent<EnemySquad>();
 
@@ -61,16 +82,38 @@ public class Character_move : MonoBehaviour
                     if (member != null) enemyUnits.Add(member);
             }
 
-            CombatManager.Instance.StartCombat(this, playerUnits, enemyUnits, targetCell2D, enemyObj);
+            CombatManager.Instance.StartCombat(this, enemyUnits, targetCell2D, enemyObj);
             return;
         }
 
         Vector3 targetWorldPos = Tilemap.GetCellCenterWorld(new Vector3Int(targetCell2D.x, targetCell2D.y, 0));
-        transform.position = Vector3.MoveTowards(transform.position, targetWorldPos, speed * Time.deltaTime);
+
+        transform.position = Vector3.MoveTowards(transform.position, targetWorldPos, currentSpeed * Time.deltaTime);
 
         if (Vector3.Distance(transform.position, targetWorldPos) <= 0.001f)
         {
-            CheckForFoundation(targetCell2D);
+            currentPosition = targetCell2D;
+
+            // Здания (включая фундаменты 0-го уровня) сами решают, что делать с героем
+            CheckForBuilding(targetCell2D);
+
+            // === ДОБАВЛЕНО: Push-логика для интерфейса выхода ===
+            if (exitUI != null && GameManager.Instance != null)
+            {
+                if (targetCell2D == GameManager.Instance.startTilePosition)
+                {
+                    // Сообщаем UI, что мы на старте
+                    exitUI.OnSteppedOnStartTile();
+                }
+                else
+                {
+                    // Сообщаем UI, что мы ушли со старта
+                    exitUI.OnLeftStartTile();
+                }
+            }
+            // ====================================================
+
+            // Только после проверок переключаем индекс на следующую точку
             waypointIndex++;
 
             if (waypointIndex >= currentPath.Count)
@@ -88,7 +131,16 @@ public class Character_move : MonoBehaviour
     private IEnumerator HandleCrossroadRoutine(Vector2Int crossroadCell)
     {
         isWaiting = true;
-        if (crossroadCell == startNode) lapsCount++;
+
+        if (crossroadCell == startNode)
+        {
+            lapsCount++;
+            // --- ДОБАВЛЕНО: Сообщаем GameManager'у, что круг завершен! ---
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.CompleteExpeditionRound();
+            }
+        }
 
         if (crossroadWaitTime > 0) yield return new WaitForSeconds(crossroadWaitTime);
 
@@ -112,12 +164,25 @@ public class Character_move : MonoBehaviour
 
     public int Round() => lapsCount;
 
-    private void CheckForFoundation(Vector2Int cellPos)
+    // --- ЛОГИКА ПОСЕЩЕНИЯ СООРУЖЕНИЙ ---
+    private void CheckForBuilding(Vector2Int cellPos)
     {
-        if (cellPos != lastCheckedCell && FILL_MAP_v4.FoundationCells.Contains(cellPos))
+        if (GridGameController.Instance == null || GridGameController.Instance.logic == null)
         {
-            lastCheckedCell = cellPos;
-            if (HandManager != null) HandManager.GiveRandomCardFromPool();
+            Debug.LogWarning("[MOVE DEBUG] GridGameController или его логика отсутствуют на сцене!");
+            return;
+        }
+
+        var instances = GridGameController.Instance.logic.buildingInstances;
+        if (instances == null)
+        {
+            Debug.LogWarning("[MOVE DEBUG] Словарь buildingInstances в LogicalGrid равен null!");
+            return;
+        }
+
+        if (instances.TryGetValue(cellPos, out IBuildingLogic building))
+        {
+            building.OnHeroVisit(this);
         }
     }
 }

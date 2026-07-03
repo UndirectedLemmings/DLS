@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 // Возможные типы карт
 public enum CardType
@@ -15,6 +16,7 @@ public enum CardAlignment
     Universal  // Игнорирует правила территорий (особые карты)
 }
 
+public enum CardEffectType { None, GainGold, GiveBuildingCard, LootBox }
 
 [CreateAssetMenu(fileName = "NewCard", menuName = "Game Data/Card")]
 public class CardData : ScriptableObject
@@ -26,15 +28,21 @@ public class CardData : ScriptableObject
     public Sprite cardArt; // Изображение карты
 
     [Header("Тип и Принадлежность")]
-    public CardType type = CardType.Building; // Здание или Эффект
-    public CardAlignment alignment = CardAlignment.Hero; // Кто может это строить
-
-    [Tooltip("Только для фракционных карт! Перетащите сюда файл FactionData. Для Героев и Универсальных оставьте пустым.")]
+    public CardType type = CardType.Building;
+    public CardAlignment alignment = CardAlignment.Hero;
     public ScriptableObject specificOwner;
 
     [Header("Для типа Building")]
     public GameObject buildingPrefab; // Читается, только если это постройка
 
-    [Header("Для типа Effect")]
-    public int effectPower; // Урон, хил или другой числовой модификатор
+    [Header("Эффекты (Обычные)")]
+    public CardEffectType effectType;
+    public int effectAmount; // Для жестко заданного золота (GainGold)
+    public CardData buildingBlueprint; // Для жестко заданного чертежа (GiveBuildingCard)
+
+    [Header("Настройки LootBox (Поиск)")]
+    [Range(0, 100)] public int goldChance = 50; // Шанс выпадения золота (в %)
+    public int minGold = 10; // Минимум золота
+    public int maxGold = 30; // Максимум золота
+    public List<CardData> possibleBlueprints; // Пул чертежей, из которого берем случайный
 }

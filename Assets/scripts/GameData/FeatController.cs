@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using static FeatData;
 
 public enum FeatDurationType
 {
@@ -34,13 +35,30 @@ public class FeatController
     public int CurrentBonusDamage { get; private set; }
     public int CurrentDamageReduction { get; private set; }
 
+    public int BonusDiceCount { get; private set; }
+    public int BonusStrength { get; private set; }
+    public int BonusEndurance { get; private set; }
+    public int BonusWill { get; private set; }
+    public int BonusWisdom { get; private set; }
+    public int BonusAgility { get; private set; }
+    public int BonusPerception { get; private set; }
+
     // Конструктор контроллера
     public FeatController(List<FeatData> activeFeats, CombatUnit unit)
     {
         this.unit = unit;
-        this.baseFeats = activeFeats != null ? activeFeats : new List<FeatData>();
 
-        // Первичный подсчет постоянных бонусов и добавление базового здоровья
+        // БЕЗОПАСНАЯ инициализация: исключаем попадание null-элементов в список
+        this.baseFeats = new List<FeatData>();
+        if (activeFeats != null)
+        {
+            foreach (var feat in activeFeats)
+            {
+                if (feat != null) this.baseFeats.Add(feat);
+            }
+        }
+
+        /* Первичный подсчет постоянных бонусов
         int totalBonusEndurance = 0;
         foreach (var feat in baseFeats)
         {
@@ -49,12 +67,23 @@ public class FeatController
                 totalBonusEndurance += feat.bonusEndurance;
             }
         }
-        if (totalBonusEndurance != 0)
+
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем, существует ли unit!
+        // Вне боя (на глобальной карте) unit равен null, и мы просто пропускаем этот шаг.
+        if (totalBonusEndurance != 0 && this.unit != null)
         {
-            unit.ApplyEnduranceModifier(totalBonusEndurance);
-        }
+            this.unit.ApplyEnduranceModifier(totalBonusEndurance);
+        }*/ //удваивает бонусы (т.е. конфликтует с UnitProgress)
 
         RecalculateCombatBonuses();
+    }
+
+    public CharacterStatType CurrentAttackStat { get; private set; } = CharacterStatType.Agility;
+    public CharacterStatType CurrentDefenseStat { get; private set; } = CharacterStatType.Agility;
+
+    public List<FeatData> GetEquipmentFeats()
+    {
+        return equipmentFeats;
     }
 
     // --- НОВЫЙ ФУНКЦИОНАЛ ДЛЯ ЭКИПИРОВКИ ---
@@ -162,27 +191,57 @@ public class FeatController
             RecalculateCombatBonuses();
         }
     }
+    public void RequestRecalculation()
+    {
+        RecalculateCombatBonuses();
+    }
+    public TargetPriority GetTargetPriority()
+    {
+        // 1. Сначала проверяем экипировку (Оружие меняет роль)
+        if (equipmentFeats != null)
+        {
+            foreach (var feat in equipmentFeats)
+            {
+                if (feat.targetPriority != TargetPriority.Frontline)
+                    return feat.targetPriority;
+            }
+        }
+
+        // 2. Если оружие ничего не меняет, проверяем врожденные/классовые фиты
+        if (baseFeats != null)
+        {
+            foreach (var feat in baseFeats)
+            {
+                if (feat.targetPriority != TargetPriority.Frontline)
+                    return feat.targetPriority;
+            }
+        }
+
+        // 3. По умолчанию все бьют того, кто ближе
+        return TargetPriority.Frontline;
+    }
 
     // --- ВЫЗОВ ГЛОБАЛЬНЫХ ТРИГГЕРОВ ---
-    public void TriggerAdventureStartFeats()
+    public void TriggerAdventureStartFeats(UnitProgress progress, bool isLeader)
     {
-        UnityEngine.Debug.Log($"<color=cyan>[ФИТ-ДИАГНОСТИКА]</color> Всего базовых фитов в списке контроллера: {baseFeats.Count}");
+        UnityEngine.Debug.Log($"<color=orange>[ДИАГНОСТИКА]</color> Запуск фитов для: {progress.heroName}. Лидер: {isLeader}. Всего фитов в базе: {baseFeats.Count}");
 
         foreach (var feat in baseFeats)
         {
-            // ЗАЩИТА: Если слот в инспекторе пустой - пропускаем его, чтобы не было краша
-            if (feat == null)
-            {
-                UnityEngine.Debug.Log("<color=red>[ФИТ-ДИАГНОСТИКА]</color> ВНИМАНИЕ: Найден пустой слот фита! Пропускаю...");
-                continue;
-            }
+            if (feat == null) continue;
 
-            UnityEngine.Debug.Log($"<color=yellow>[ФИТ-ДИАГНОСТИКА]</color> Вижу у лидера фит: '{feat.featName}'. Его триггер = {feat.triggerType}");
+            UnityEngine.Debug.Log($"<color=orange>[ДИАГНОСТИКА]</color> Вижу фит: {feat.name} | Тип: {feat.triggerType} | LeaderOnly: {feat.leaderOnly}");
 
             if (feat.triggerType == FeatType.OnAdventureStart)
             {
-                UnityEngine.Debug.Log($"<color=green>[ФИТ-ДИАГНОСТИКА]</color> Запускаем ExecuteEffect для {feat.featName}");
-                feat.ExecuteEffect(unit);
+                if (feat.leaderOnly && !isLeader)
+                {
+                    UnityEngine.Debug.Log($"<color=yellow>[ПРОПУСК]</color> Фит {feat.name} пропущен (герой не является лидером).");
+                    continue;
+                }
+
+                UnityEngine.Debug.Log($"<color=lime>[ЗАПУСК]</color> ВЫПОЛНЯЕМ ЭФФЕКТ ФИТА: {feat.name}!");
+                feat.ExecuteAdventureStartEffect(progress);
             }
         }
     }
@@ -224,35 +283,50 @@ public class FeatController
     {
         CurrentBonusDamage = 0;
         CurrentDamageReduction = 0;
+        BonusDiceCount = 0;
+        BonusStrength = 0;
+        BonusEndurance = 0;
+        BonusWill = 0;
+        BonusWisdom = 0;
+        BonusAgility = 0;
+        BonusPerception = 0;
 
-        // 1. Считаем базу
-        foreach (var feat in baseFeats)
+        CurrentAttackStat = CharacterStatType.Strength;
+        CurrentDefenseStat = CharacterStatType.Endurance;
+
+        void ApplyFeatStats(FeatData feat)
         {
-            if (feat.triggerType == FeatType.PassiveStats)
+            if (feat != null && feat.triggerType == FeatType.PassiveStats)
             {
+                // Старые боевые бонусы
                 CurrentBonusDamage += feat.bonusDamage;
                 CurrentDamageReduction += feat.damageReduction;
+                BonusDiceCount += feat.bonusDiceCount;
+
+                // Новые глобальные бонусы
+                BonusStrength += feat.bonusStrength;
+                BonusEndurance += feat.bonusEndurance;
+                BonusWill += feat.bonusWill;
+                BonusWisdom += feat.bonusWisdom;
+                BonusAgility += feat.bonusAgility;
+                BonusPerception += feat.bonusPerception;
+
+                // Переопределение характеристик боя от оружия/экипировки
+                if (feat.overridesCombatStats)
+                {
+                    CurrentAttackStat = feat.attackStat;
+                    CurrentDefenseStat = feat.defenseStat;
+                }
             }
         }
 
-        // 2. Считаем экипировку (НОВОЕ)
-        foreach (var feat in equipmentFeats)
-        {
-            if (feat.triggerType == FeatType.PassiveStats)
-            {
-                CurrentBonusDamage += feat.bonusDamage;
-                CurrentDamageReduction += feat.damageReduction;
-            }
-        }
+        // 2. Пробегаемся по всем спискам и суммируем
+        foreach (var feat in baseFeats) ApplyFeatStats(feat);
+        foreach (var feat in equipmentFeats) ApplyFeatStats(feat);
 
-        // 3. Считаем временные баффы
         foreach (var activeFeat in temporaryFeats)
         {
-            if (activeFeat.Feat.triggerType == FeatType.PassiveStats)
-            {
-                CurrentBonusDamage += activeFeat.Feat.bonusDamage;
-                CurrentDamageReduction += activeFeat.Feat.damageReduction;
-            }
+            if (activeFeat != null) ApplyFeatStats(activeFeat.Feat);
         }
     }
 }

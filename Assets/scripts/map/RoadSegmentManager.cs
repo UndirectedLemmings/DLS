@@ -46,7 +46,16 @@ public class RoadSegmentManager : MonoBehaviour
     {
         while (true)
         {
-            yield return new WaitForSeconds(spawnInterval);
+            // УМНЫЙ ТАЙМЕР: тикает только когда игра НЕ на паузе
+            float currentTimer = 0f;
+            while (currentTimer < spawnInterval)
+            {
+                if (GameManager.Instance == null || !GameManager.Instance.isMapPaused)
+                {
+                    currentTimer += Time.deltaTime; // Увеличиваем таймер
+                }
+                yield return null; // Ждем до следующего кадра
+            }
 
             // Если пул пуст, спавнить некого
             if (spawnPool.Count == 0) continue;
@@ -67,8 +76,8 @@ public class RoadSegmentManager : MonoBehaviour
             // --- ОБНОВЛЕННАЯ ПРОВЕРКА ---
             // Если тут фундамент, ИЛИ здание, ИЛИ перекресток — пропускаем!
             if (FILL_MAP_v4.FoundationCells.Contains(v3Cell) ||
-                GridGameController.Instance.logic.buildingsOnMap.Contains(cell) ||
-                FILL_MAP_v4.IntersectionCells.Contains(v3Cell)) // <--- Добавили проверку перекрестка
+                GridGameController.Instance.logic.buildingInstances.ContainsKey(cell) || // <--- ИСПРАВЛЕНО: теперь проверяем через ContainsKey словаря!
+                FILL_MAP_v4.IntersectionCells.Contains(v3Cell))
             {
                 continue;
             }

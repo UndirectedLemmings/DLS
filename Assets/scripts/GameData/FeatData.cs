@@ -9,6 +9,16 @@ public enum FeatNature
     Property    // Постоянная особенность (статы, пассивки, теги)
 }
 
+public enum CharacterStatType
+{
+    Strength,
+    Endurance,
+    Will,
+    Wisdom,
+    Agility,
+    Perception
+}
+
 // 2. Категория свойства (Откуда берется? Используется если Nature == Property)
 public enum PropertyCategory
 {
@@ -32,24 +42,36 @@ public enum FeatDomain
 // Триггеры для CombatManager (Когда это срабатывает в бою?)
 public enum FeatType
 {
-    PassiveStats,   // Пассивное изменение характеристик (здоровье, урон)
-    BattleStart,    // Срабатывает один раз в начале боя (например, щит Лидера)
+    PassiveStats,
+    OnBattleStart,
+    OnTurnStart,
     OnAttack,       // Модификатор при атаке (например, энергетический резонанс)
-    OnDamageTaken,   // Реакция на урон (например, шипы или броня)
-    OnAdventureStart //глобальный триггер для карты экспедиции
+    OnDamageTaken,  // Реакция на урон (например, шипы или броня)
+    OnAdventureStart// глобальный триггер для карты экспедиции
 }
 
+
 [CreateAssetMenu(fileName = "NewFeat", menuName = "Combat/Feat")]
+
 public class FeatData : ScriptableObject
 {
     public string featName;
     [TextArea(2, 4)]
     public string description;
 
+    [Header("Ограничения")]
+    [Tooltip("Если true, этот фит сработает при старте приключения только в том случае, если герой — Лидер отряда.")]
+    public bool leaderOnly = false;
+    // ИСПРАВЛЕНО: Добавлено поле для иконки, чтобы UI мог её отрисовать
+    public Sprite icon;
+
     [Header("Новая Таксономия")]
     public FeatNature nature;
+
+    // ИСПРАВЛЕНО: Переименовано из propertyCategory в category
     [Tooltip("Имеет смысл, если Nature = Property")]
-    public PropertyCategory propertyCategory;
+    public PropertyCategory category;
+
     [Tooltip("Имеет смысл, если PropertyCategory = Ability")]
     public FeatDomain domain;
 
@@ -62,17 +84,44 @@ public class FeatData : ScriptableObject
     [Tooltip("Список тегов, которые этот фит уничтожает при наложении")]
     public List<string> cancelsTags = new List<string>();
 
+    [Header("Кастомные Боевые Характеристики")]
+    [Tooltip("Если true, это свойство изменит базовые статы атаки и защиты в бою")]
+    public bool overridesCombatStats = false;
+
+    [Tooltip("Какая характеристика атакующего используется для броска на попадание")]
+    public CharacterStatType attackStat = CharacterStatType.Agility;
+
+    [Tooltip("Какая характеристика цели используется для броска на защиту")]
+    public CharacterStatType defenseStat = CharacterStatType.Agility;
+    public enum TargetPriority
+    {
+        Frontline,  // Бьет первого живого в ряду (Классика: Воины, Мечи, Топоры)
+        LowestHP,   // Ищет самого слабого (Добивание: Застрельщики, Кинжалы)
+        HighestHP,  // Ищет самого здорового (Убийцы гигантов: Арбалеты, Копья)
+        Backline    // Бьет с конца ряда (Снайперы: Луки, Магия)
+    }
+
+    [Header("Боевое поведение (Для оружия/классов)")]
+    public TargetPriority targetPriority = TargetPriority.Frontline;
+
+
     [Header("Модификаторы Характеристик")]
+    public int bonusStrength;
     public int bonusEndurance;
+    public int bonusWill;
+    public int bonusWisdom;
+    public int bonusAgility;
+    public int bonusPerception;
     public int bonusDamage;
     public int damageReduction;
+    public int bonusDiceCount;
+
+    [Header("Лут с фита (опционально)")]
+    public bool dropsLoot; // Галочка: роняет ли этот фит спец-лут?
+    public LootEntry featLoot; // Настройка того, что именно падает
 
     // Полиморфный метод для уникальной логики фитов
-    public virtual void ExecuteEffect(CombatUnit owner, CombatUnit target = null)
-    {
-        Debug.Log($"<color=cyan>кака.");
+    public virtual void ExecuteEffect(CombatUnit unit) { }
 
-        // По умолчанию базовые фиты (как броня или ХП) ничего тут не делают,
-        // они работают пассивно через FeatController[cite: 8].
-    }
+    public virtual void ExecuteAdventureStartEffect(UnitProgress overworldProgress) { }
 }

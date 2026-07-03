@@ -99,9 +99,11 @@ public class CombatUIManager : MonoBehaviour
 
             // Находим компонент Image и вставляем туда портрет бойца
             Image img = iconObj.GetComponent<Image>();
-            if (img != null && unit.BaseData.portrait != null)
+
+            // ИСПРАВЛЕНО: копаем глубже через Progress.Template вместо старого BaseData
+            if (img != null && unit.Progress != null && unit.Progress.Template != null && unit.Progress.Template.portrait != null)
             {
-                img.sprite = unit.BaseData.portrait;
+                img.sprite = unit.Progress.Template.portrait;
             }
         }
     }

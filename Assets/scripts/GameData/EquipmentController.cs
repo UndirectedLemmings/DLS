@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-
+using UnityEngine;
 public class EquipmentController
 {
     // Строгие слоты
@@ -8,10 +8,11 @@ public class EquipmentController
     public ItemData equippedAccessory { get; private set; }
 
     private FeatController unitFeats;
-
-    public EquipmentController(FeatController featController)
+    private CombatUnit ownerUnit; // Добавили поле
+    public EquipmentController(FeatController featController, CombatUnit owner)
     {
         this.unitFeats = featController;
+        this.ownerUnit = owner; // Инициализируем
     }
 
     // Универсальный метод надевания предмета
@@ -19,10 +20,10 @@ public class EquipmentController
     {
         if (newItem == null) return;
 
-        // Сначала снимаем предмет из того же слота (если там что-то было)
+        // Снимаем старый предмет, если есть
         UnequipSlot(newItem.slotType);
 
-        // Распределяем по слотам и надеваем новый
+        // Надеваем новый
         switch (newItem.slotType)
         {
             case ItemSlotType.Weapon: equippedWeapon = newItem; break;
@@ -30,12 +31,12 @@ public class EquipmentController
             case ItemSlotType.Accessory: equippedAccessory = newItem; break;
         }
 
-        // Передаем фиты предмета в контроллер фитов
         foreach (var feat in newItem.grantedFeats)
         {
-            // Здесь предполагается, что в FeatController есть метод AddFeat для постоянных фитов
             unitFeats.AddEquipmentFeat(feat);
         }
+        unitFeats.RequestRecalculation();
+        UpdateUnitBonuses(); // Обновляем
     }
 
     // Снять предмет по типу слота
@@ -68,5 +69,44 @@ public class EquipmentController
                 unitFeats.RemoveEquipmentFeat(feat); // Метод удаления базового фита
             }
         }
+        UpdateUnitBonuses();
     }
+    private void UpdateUnitBonuses()
+    {
+        // 1. Сбрасываем старые бонусы
+        // 2. Устанавливаем новые
+        // ВСЯ МАТЕМАТИКА УДАЛЕНА ОТСЮДА! 
+        // Теперь все бонусы (включая кубы урона) считает FeatController 
+        // автоматически при вызове unitFeats.RequestRecalculation() выше.
+
+        Debug.Log("[Equipment] Экипировка обновлена, статы пересчитаны контроллером фитов.");
+    }
+
+    // Внутри EquipmentController.cs
+
+    public void InitializeStartingEquipmentFeats()
+    {
+        var progress = ownerUnit.Progress;
+
+        // Вспомогательный метод для добавления списка фитов
+        void AddFeatsFromList(List<FeatData> feats)
+        {
+            if (feats == null) return;
+            foreach (var feat in feats)
+            {
+                if (feat != null)
+                    unitFeats.AddEquipmentFeat(feat);
+            }
+        }
+
+        // Теперь просто вызываем этот помощник для каждого слота
+        AddFeatsFromList(progress.equippedWeapon?.grantedFeats);
+        AddFeatsFromList(progress.equippedArmor?.grantedFeats);
+        AddFeatsFromList(progress.equippedAccessory?.grantedFeats);
+
+        // В конце запрашиваем один общий пересчет бонусов, 
+        // чтобы не пересчитывать статы после каждого добавленного фита
+        unitFeats.RequestRecalculation();
+    }
+
 }

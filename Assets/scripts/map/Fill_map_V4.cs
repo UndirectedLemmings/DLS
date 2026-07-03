@@ -4,12 +4,11 @@ using UnityEngine.Tilemaps;
 
 public class FILL_MAP_v4 : MonoBehaviour
 {
+    [Header("Глобальные настройки")]
+    public GlobalSettingsData gameSettings;
+
     [Header("Визуализация границ")]
     public LineRenderer borderLineRenderer;
-
-    [Header("Настройки карты")]
-    public int mapWidth = 40;
-    public int mapHeight = 40;
 
     [Header("Постобработка")]
     public VoidDecorator voidDecorator;
@@ -29,29 +28,105 @@ public class FILL_MAP_v4 : MonoBehaviour
     [Header("Тайлы карты")]
     public TileBase VoidTile;
     public TileBase foundationTile;
-    public GameObject start;
-    public GameObject signpost;
+    public GameObject foundationPrefab; // <-- ДОБАВЛЕНО
+    public GameObject startPrefab;
+    public GameObject signpostPrefab;
 
-    [Header("Настройки Героя (Внутренний круг)")]
-    public List<HeroData> availableHeroes;
-    public HeroData activeLeader;
-    public List<HeroData> activeSquad;
+    // Настройки Героя (Внутренний круг)
+    public List<HeroData> availableHeroes { get; private set; }
+    public HeroData activeLeader { get; private set; }
 
-    [Header("Настройки Фракций (Внешний круг)")]
-    public List<FactionData> activeFactions;
+    // --- ДОБАВЛЕНО: Для хранения данных класса (Бродяга/Воин) ---
+    public TileBase[] activeHeroVoidTiles { get; private set; }
+    public TileBase activeHeroRoadTile { get; private set; }
 
-    // --- ОБНОВЛЕННЫЕ РЕЕСТРЫ СЕТКИ (Все в Vector2Int) ---
-    public Dictionary<Vector2Int, UnityEngine.Tilemaps.TileBase[]> territoryMap = new Dictionary<Vector2Int, UnityEngine.Tilemaps.TileBase[]>();
+    // Настройки Фракций (Внешний круг)
+    public List<FactionData> activeFactions { get; private set; }
+
+    // --- РЕЕСТРЫ СЕТКИ ---
+    public Dictionary<Vector2Int, TileBase[]> territoryMap = new Dictionary<Vector2Int, TileBase[]>();
     public static Dictionary<Vector2Int, ScriptableObject> cellOwners = new Dictionary<Vector2Int, ScriptableObject>();
     public static HashSet<Vector2Int> FoundationCells = new HashSet<Vector2Int>();
     public static HashSet<Vector2Int> IntersectionCells = new HashSet<Vector2Int>();
     public static Dictionary<Vector2Int, CoordinateSwitcher> GlobalWaypoints = new Dictionary<Vector2Int, CoordinateSwitcher>();
+
     private HashSet<Vector2Int> globalOccupiedCells = new HashSet<Vector2Int>();
     private List<GameObject> tempMapObjects = new List<GameObject>();
 
-    private Vector2Int Vector_Start;
+    private Vector2Int startCell;
+    private int mapWidth;
+    private int mapHeight;
 
-    private bool generation_roadmap()
+    private void Awake()
+    {
+        // 1. Безопасное получение настроек карты
+        if (gameSettings != null)
+        {
+            mapWidth = gameSettings.mapSize.x;
+            mapHeight = gameSettings.mapSize.y;
+        }
+        else
+        {
+            Debug.LogError("ВНИМАНИЕ: Файл GlobalSettingsData не назначен в инспекторе FILL_MAP_v4!");
+            mapWidth = 40;
+            mapHeight = 40;
+        }
+
+        // 2. ИНТЕГРАЦИЯ С GAMEMANAGER
+        if (GameManager.Instance != null)
+        {
+            // ИСПРАВЛЕНО: Берем живого лидера из формации, чтобы учесть его Класс (Бродяга и т.д.)
+            if (GameManager.Instance.combatFormation != null && GameManager.Instance.combatFormation.Length > 0)
+            {
+                UnitProgress leaderProgress = GameManager.Instance.combatFormation[0];
+                if (leaderProgress != null)
+                {
+                    // Сохраняем шаблон
+                    activeLeader = leaderProgress.Template as HeroData;
+
+                    // Читаем тайлы пустоты с учетом класса
+                    activeHeroVoidTiles = leaderProgress.GetCurrentTerritoryTiles();
+
+                    // --- ИСПРАВЛЕНО: Умное чтение дороги из класса лидера ---
+                    activeHeroRoadTile = leaderProgress.GetCurrentRoadTile();
+
+                    // 🚨 ТРЕВОГА ДЛЯ ТЕБЯ: Если тайл не нашелся, игра громко об этом скажет
+                    if (activeHeroRoadTile == null)
+                    {
+                        Debug.LogError($"<color=red>[FILL_MAP]</color> КРИТИЧЕСКАЯ ОШИБКА: У лидера {leaderProgress.heroName} нет тайла дороги! Зайди в Инспектор его класса ({leaderProgress.classFeat?.name}) и добавь RuleTile в массив Class Territory Road Tiles.");
+                    }
+                }
+            }
+            // --- ВОТ ОНО: Забираем фракции напрямую из GameManager ---
+            if (GameManager.Instance.currentFactions != null && GameManager.Instance.currentFactions.Count > 0)
+            {
+                activeFactions = new List<FactionData>(GameManager.Instance.currentFactions);
+                Debug.Log($"[FILL_MAP] Загружено фракций из GameManager: {activeFactions.Count}");
+            }
+
+            // Просим GameManager собрать колоду на основе его собственных данных
+            GameManager.Instance.PrepareSessionCardPool();
+
+            Debug.Log($"[FILL_MAP] Данные экспедиции загружены из GameManager. Лидер: {activeLeader.name}");
+        }
+        else
+        {
+            Debug.LogWarning("[FILL_MAP] GameManager не найден. Используются тестовые герои и фракции из Инспектора.");
+        }
+    }
+
+    public void StartGenerationWithRetries()
+    {
+        int maxAttempts = 10;
+        for (int i = 1; i <= maxAttempts; i++)
+        {
+            CleanupMap();
+            if (GenerateRoadmap()) return;
+        }
+        Debug.LogError("КРИТИЧЕСКАЯ ОШИБКА: Не удалось сгенерировать карту за 10 попыток!");
+    }
+
+    private bool GenerateRoadmap()
     {
         Debug.Log("Генерация: Активация Внешнего Кольца");
         GlobalWaypoints.Clear();
@@ -59,13 +134,14 @@ public class FILL_MAP_v4 : MonoBehaviour
         territoryMap.Clear();
         cellOwners.Clear();
 
-        int overscan = 20;
+        GridGameController.Instance.InitializeGrid(mapWidth, mapHeight);
 
+        // Заливка фона
+        int overscan = 20;
         for (int x = -overscan; x < mapWidth + overscan; x++)
         {
             for (int y = -overscan; y < mapHeight + overscan; y++)
             {
-                // Для заливки используем 3D вектор локально
                 landscapeMap.SetTile(new Vector3Int(x, y, 0), VoidTile);
             }
         }
@@ -73,64 +149,62 @@ public class FILL_MAP_v4 : MonoBehaviour
         int margin = Mathf.Max(3, 14 - (difficultyLevel * 2));
         int randomOffset = 4;
 
-        // 1. Старт
-        Vector_Start = new Vector2Int(
-            margin + Random.Range(0, randomOffset),
-            margin + Random.Range(0, randomOffset));
-        GameObject start_Object = Instantiate(start, roadsMap.GetCellCenterWorld(new Vector3Int(Vector_Start.x, Vector_Start.y, 0)), Quaternion.identity);
-        tempMapObjects.Add(start_Object);
+        // Генерация ключевых точек (узлов)
+        startCell = new Vector2Int(margin + Random.Range(0, randomOffset), margin + Random.Range(0, randomOffset));
+        GameObject startObj = Instantiate(startPrefab, roadsMap.GetCellCenterWorld(new Vector3Int(startCell.x, startCell.y, 0)), Quaternion.identity);
+        tempMapObjects.Add(startObj);
 
-        // 2. Знак 1
-        Vector2Int Vector_signpost1 = new Vector2Int(
-            margin + Random.Range(0, randomOffset),
-            mapHeight - margin - Random.Range(0, randomOffset));
-        GameObject signpost1_Object = Instantiate(signpost, roadsMap.GetCellCenterWorld(new Vector3Int(Vector_signpost1.x, Vector_signpost1.y, 0)), Quaternion.identity);
-        tempMapObjects.Add(signpost1_Object);
+        IBuildingLogic startLogic = startObj.GetComponent<IBuildingLogic>();
+        if (startLogic != null && GridGameController.Instance != null && GridGameController.Instance.logic != null)
+        {
+            startLogic.InitializeAt(startCell);
+            GridGameController.Instance.logic.buildingInstances[startCell] = startLogic;
+            Debug.Log($"[FILL_MAP] Стартовая точка успешно зарегистрирована в реестре на клетке {startCell}!");
+        }
 
-        // 3. Знак 2
-        Vector2Int Vector_signpost2 = new Vector2Int(
-            mapWidth - margin - Random.Range(0, randomOffset),
-            mapHeight - margin - Random.Range(0, randomOffset));
-        GameObject signpost2_Object = Instantiate(signpost, roadsMap.GetCellCenterWorld(new Vector3Int(Vector_signpost2.x, Vector_signpost2.y, 0)), Quaternion.identity);
-        tempMapObjects.Add(signpost2_Object);
+        Vector2Int signpost1Cell = new Vector2Int(margin + Random.Range(0, randomOffset), mapHeight - margin - Random.Range(0, randomOffset));
+        GameObject signpost1Obj = Instantiate(signpostPrefab, roadsMap.GetCellCenterWorld(new Vector3Int(signpost1Cell.x, signpost1Cell.y, 0)), Quaternion.identity);
+        tempMapObjects.Add(signpost1Obj);
 
-        // 4. Знак 3
-        Vector2Int Vector_signpost3 = new Vector2Int(
-            mapWidth - margin - Random.Range(0, randomOffset),
-            margin + Random.Range(0, randomOffset));
-        GameObject signpost3_Object = Instantiate(signpost, roadsMap.GetCellCenterWorld(new Vector3Int(Vector_signpost3.x, Vector_signpost3.y, 0)), Quaternion.identity);
-        tempMapObjects.Add(signpost3_Object);
+        Vector2Int signpost2Cell = new Vector2Int(mapWidth - margin - Random.Range(0, randomOffset), mapHeight - margin - Random.Range(0, randomOffset));
+        GameObject signpost2Obj = Instantiate(signpostPrefab, roadsMap.GetCellCenterWorld(new Vector3Int(signpost2Cell.x, signpost2Cell.y, 0)), Quaternion.identity);
+        tempMapObjects.Add(signpost2Obj);
 
+        Vector2Int signpost3Cell = new Vector2Int(mapWidth - margin - Random.Range(0, randomOffset), margin + Random.Range(0, randomOffset));
+        GameObject signpost3Obj = Instantiate(signpostPrefab, roadsMap.GetCellCenterWorld(new Vector3Int(signpost3Cell.x, signpost3Cell.y, 0)), Quaternion.identity);
+        tempMapObjects.Add(signpost3Obj);
+
+        // Распределение фракций
         Vector2 loopCenter = new Vector2(mapWidth / 2f, mapHeight / 2f);
-
-        FactionData facS1 = null;
-        FactionData facS2 = null;
-        FactionData facS3 = null;
-        FactionData facS4 = null;
+        FactionData facS1 = null, facS2 = null, facS3 = null, facS4 = null;
 
         if (activeFactions != null && activeFactions.Count > 0)
         {
-            if (activeFactions.Count == 1) { facS2 = activeFactions[0]; facS3 = activeFactions[0]; }
-            else if (activeFactions.Count == 2) { facS2 = activeFactions[0]; facS3 = activeFactions[1]; }
-            else if (activeFactions.Count >= 3) { facS2 = activeFactions[0]; facS3 = activeFactions[1]; facS4 = activeFactions[2]; }
+            facS2 = activeFactions[0];
+            facS3 = activeFactions.Count > 1 ? activeFactions[1] : activeFactions[0];
+            facS4 = activeFactions.Count > 2 ? activeFactions[2] : null;
         }
 
-        if (!BuildSmartRoutes(start_Object.GetComponent<CoordinateSwitcher>(), Vector_Start, Vector_signpost1, loopCenter, facS1)) return false;
-        GlobalWaypoints.Add(Vector_Start, start_Object.GetComponent<CoordinateSwitcher>());
+        // Построение путей
+        if (!BuildSmartRoutes(startObj.GetComponent<CoordinateSwitcher>(), startCell, signpost1Cell, loopCenter, facS1)) return false;
+        GlobalWaypoints.Add(startCell, startObj.GetComponent<CoordinateSwitcher>());
 
-        if (!BuildSmartRoutes(signpost1_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost1, Vector_signpost2, loopCenter, facS2)) return false;
-        GlobalWaypoints.Add(Vector_signpost1, signpost1_Object.GetComponent<CoordinateSwitcher>());
+        if (!BuildSmartRoutes(signpost1Obj.GetComponent<CoordinateSwitcher>(), signpost1Cell, signpost2Cell, loopCenter, facS2)) return false;
+        GlobalWaypoints.Add(signpost1Cell, signpost1Obj.GetComponent<CoordinateSwitcher>());
 
-        if (!BuildSmartRoutes(signpost2_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost2, Vector_signpost3, loopCenter, facS3)) return false;
-        GlobalWaypoints.Add(Vector_signpost2, signpost2_Object.GetComponent<CoordinateSwitcher>());
+        if (!BuildSmartRoutes(signpost2Obj.GetComponent<CoordinateSwitcher>(), signpost2Cell, signpost3Cell, loopCenter, facS3)) return false;
+        GlobalWaypoints.Add(signpost2Cell, signpost2Obj.GetComponent<CoordinateSwitcher>());
 
-        if (!BuildSmartRoutes(signpost3_Object.GetComponent<CoordinateSwitcher>(), Vector_signpost3, Vector_Start, loopCenter, facS4)) return false;
-        GlobalWaypoints.Add(Vector_signpost3, signpost3_Object.GetComponent<CoordinateSwitcher>());
+        if (!BuildSmartRoutes(signpost3Obj.GetComponent<CoordinateSwitcher>(), signpost3Cell, startCell, loopCenter, facS4)) return false;
+        GlobalWaypoints.Add(signpost3Cell, signpost3Obj.GetComponent<CoordinateSwitcher>());
 
-        CameraMovement camScript = Camera.main.GetComponent<CameraMovement>();
-        if (camScript != null) camScript.SetupCameraForMap(40, 40);
+        // Настройка камеры
+        if (Camera.main.TryGetComponent(out CameraMovement camScript))
+        {
+            camScript.SetupCameraForMap(mapWidth, mapHeight);
+        }
 
-        // Конвертация для VoidDecorator (чтобы не переписывать его сейчас)
+        // Декорирование и финальная инициализация
         if (voidDecorator != null)
         {
             HashSet<Vector3Int> occupied3D = new HashSet<Vector3Int>();
@@ -139,10 +213,10 @@ public class FILL_MAP_v4 : MonoBehaviour
             Dictionary<Vector3Int, TileBase[]> territory3D = new Dictionary<Vector3Int, TileBase[]>();
             foreach (var kvp in territoryMap) territory3D.Add(new Vector3Int(kvp.Key.x, kvp.Key.y, 0), kvp.Value);
 
-            voidDecorator.Decorate(mapWidth, mapHeight, occupied3D, territory3D, activeLeader.territoryVoidTiles);
+            // ИСПРАВЛЕНО: Передаем activeHeroVoidTiles вместо activeLeader.territoryVoidTiles
+            voidDecorator.Decorate(mapWidth, mapHeight, occupied3D, territory3D, activeHeroVoidTiles);
         }
 
-        GridGameController.Instance.InitializeGrid(mapWidth, mapHeight);
         DrawMapBorder();
 
         return true;
@@ -152,8 +226,8 @@ public class FILL_MAP_v4 : MonoBehaviour
     {
         List<Vector2Int> pathA = FindPathAStar(startPoint, endPoint, new HashSet<Vector2Int>(), false, loopCenter);
         if (pathA == null || pathA.Count == 0) return false;
-
-        DrawAndRegisterPath(pathA, activeLeader.heroRoadTile, activeLeader.territoryVoidTiles, activeLeader);
+        // ИСПРАВЛЕНО: Передаем activeHeroVoidTiles вместо activeLeader.territoryVoidTiles
+        DrawAndRegisterPath(pathA, activeHeroRoadTile, activeHeroVoidTiles, activeLeader);
 
         int minA = Mathf.Max(0, minFoundationsPerRoad + activeLeader.bonusFoundations);
         int maxA = Mathf.Max(minA, maxFoundationsPerRoad + activeLeader.bonusFoundations);
@@ -163,25 +237,21 @@ public class FILL_MAP_v4 : MonoBehaviour
 
         if (segmentFaction != null)
         {
-            Vector2Int mergePoint = endPoint;
-            if (pathA.Count > 3) mergePoint = pathA[pathA.Count - 3];
+            Vector2Int mergePoint = pathA.Count > 3 ? pathA[pathA.Count - 3] : endPoint;
 
             IntersectionCells.Add(startPoint);
             IntersectionCells.Add(endPoint);
             IntersectionCells.Add(mergePoint);
 
             HashSet<Vector2Int> thickObstacles = GetThickObstacles(pathA, startPoint, endPoint, mergePoint);
-
             List<Vector2Int> pathB = FindPathAStar(startPoint, mergePoint, thickObstacles, true, loopCenter);
+
             if (pathB == null || pathB.Count == 0) return false;
 
-            if (pathB.Count > 0)
+            int mergeIndex = pathA.IndexOf(mergePoint);
+            if (mergeIndex != -1)
             {
-                int mergeIndex = pathA.IndexOf(mergePoint);
-                if (mergeIndex != -1)
-                {
-                    for (int i = mergeIndex + 1; i < pathA.Count; i++) pathB.Add(pathA[i]);
-                }
+                for (int i = mergeIndex + 1; i < pathA.Count; i++) pathB.Add(pathA[i]);
             }
 
             DrawAndRegisterPath(pathB, segmentFaction.factionRoadTile, segmentFaction.territoryVoidTiles, segmentFaction);
@@ -193,10 +263,11 @@ public class FILL_MAP_v4 : MonoBehaviour
             switcher.pathB = pathB;
 
             GameObject roadManagerObj = new GameObject($"RoadManager_{segmentFaction.name}");
+            roadManagerObj.transform.SetParent(this.transform);
+
             RoadSegmentManager roadManager = roadManagerObj.AddComponent<RoadSegmentManager>();
             roadManager.ownerFaction = segmentFaction;
             roadManager.roadCells = new List<Vector2Int>(pathB);
-            roadManagerObj.transform.SetParent(this.transform);
         }
         else
         {
@@ -228,11 +299,13 @@ public class FILL_MAP_v4 : MonoBehaviour
         return thick;
     }
 
-    void DrawAndRegisterPath(List<Vector2Int> path, TileBase currentTile, TileBase[] voidTiles, ScriptableObject owner)
+    private void DrawAndRegisterPath(List<Vector2Int> path, TileBase currentTile, TileBase[] voidTiles, ScriptableObject owner)
     {
         foreach (Vector2Int p in path)
         {
-            if (globalOccupiedCells.Contains(p) && currentTile != activeLeader.heroRoadTile) continue;
+            // ИСПРАВЛЕНО: Теперь сравниваем с новой переменной activeHeroRoadTile!
+            // Это позволит центральной дороге героя перекрывать чужие пути
+            if (globalOccupiedCells.Contains(p) && currentTile != activeHeroRoadTile) continue;
 
             roadsMap.SetTile(new Vector3Int(p.x, p.y, 0), currentTile);
             globalOccupiedCells.Add(p);
@@ -252,13 +325,15 @@ public class FILL_MAP_v4 : MonoBehaviour
         }
     }
 
+    // --- A* PATHFINDING ---
+
     private class Node
     {
         public Vector2Int pos;
         public Node parent;
         public int gCost;
         public int hCost;
-        public int fCost { get { return gCost + hCost; } }
+        public int fCost => gCost + hCost;
     }
 
     private List<Vector2Int> FindPathAStar(Vector2Int startPos, Vector2Int targetPos, HashSet<Vector2Int> obstacles, bool isOuterRoute, Vector2 loopCenter)
@@ -269,12 +344,16 @@ public class FILL_MAP_v4 : MonoBehaviour
         Node startNode = new Node { pos = startPos, gCost = 0, hCost = GetDistance(startPos, targetPos) };
         openSet.Add(startNode);
 
+        Vector2Int[] directions = {
+            Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down
+        };
+
         while (openSet.Count > 0)
         {
             Node currentNode = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
-                if (openSet[i].fCost < currentNode.fCost || openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost)
+                if (openSet[i].fCost < currentNode.fCost || (openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost))
                 {
                     currentNode = openSet[i];
                 }
@@ -288,27 +367,19 @@ public class FILL_MAP_v4 : MonoBehaviour
                 return RetracePath(startNode, currentNode);
             }
 
-            Vector2Int[] neighbors = {
-                new Vector2Int(currentNode.pos.x + 1, currentNode.pos.y),
-                new Vector2Int(currentNode.pos.x - 1, currentNode.pos.y),
-                new Vector2Int(currentNode.pos.x, currentNode.pos.y + 1),
-                new Vector2Int(currentNode.pos.x, currentNode.pos.y - 1)
-            };
-
-            foreach (Vector2Int neighborPos in neighbors)
+            foreach (Vector2Int dir in directions)
             {
+                Vector2Int neighborPos = currentNode.pos + dir;
+
                 if (neighborPos.x < 0 || neighborPos.x > mapWidth || neighborPos.y < 0 || neighborPos.y > mapHeight) continue;
                 if (closedSet.Contains(neighborPos)) continue;
-
-                if (neighborPos != targetPos && (globalOccupiedCells.Contains(neighborPos) || obstacles.Contains(neighborPos)))
-                    continue;
+                if (neighborPos != targetPos && (globalOccupiedCells.Contains(neighborPos) || obstacles.Contains(neighborPos))) continue;
 
                 float distToTargetEntry = Vector2Int.Distance(neighborPos, targetPos);
-
                 if (distToTargetEntry <= 3)
                 {
                     if (currentNode.pos.x == targetPos.x && neighborPos.x != targetPos.x) continue;
-                    else if (currentNode.pos.y == targetPos.y && neighborPos.y != targetPos.y) continue;
+                    if (currentNode.pos.y == targetPos.y && neighborPos.y != targetPos.y) continue;
                 }
 
                 int moveCost = 15;
@@ -321,19 +392,16 @@ public class FILL_MAP_v4 : MonoBehaviour
                     if (currentDirection != nextDirection)
                     {
                         float distToTarget = Vector2Int.Distance(neighborPos, targetPos);
-                        int turnPenalty = distToTarget < 6 ? 0 : 30;
-                        moveCost += turnPenalty;
+                        moveCost += distToTarget < 6 ? 0 : 30; // Turn penalty
                     }
                 }
 
-                float noise = Mathf.PerlinNoise(neighborPos.x * 0.2f, neighborPos.y * 0.2f);
-                moveCost += (int)(noise * 25);
+                moveCost += (int)(Mathf.PerlinNoise(neighborPos.x * 0.2f, neighborPos.y * 0.2f) * 25);
 
                 if (isOuterRoute)
                 {
-                    float distToCenter = Vector2.Distance(new Vector2(neighborPos.x, neighborPos.y), loopCenter);
-                    float penalty = Mathf.Max(0, 15f - distToCenter);
-                    moveCost += (int)(penalty * 5);
+                    float distToCenter = Vector2.Distance(neighborPos, loopCenter);
+                    moveCost += (int)(Mathf.Max(0, 15f - distToCenter) * 5);
                 }
 
                 int newMovementCostToNeighbor = currentNode.gCost + moveCost;
@@ -359,6 +427,7 @@ public class FILL_MAP_v4 : MonoBehaviour
     {
         List<Vector2Int> path = new List<Vector2Int>();
         Node currentNode = endNode;
+
         while (currentNode != startNode)
         {
             path.Add(currentNode.pos);
@@ -366,6 +435,7 @@ public class FILL_MAP_v4 : MonoBehaviour
         }
         path.Add(startNode.pos);
         path.Reverse();
+
         return path;
     }
 
@@ -376,9 +446,11 @@ public class FILL_MAP_v4 : MonoBehaviour
         return (dstX + dstY) * 10;
     }
 
+    // --- UTILS ---
+
     public Vector2Int Get_Start_road()
     {
-        return Vector_Start;
+        return startCell;
     }
 
     private void GenerateFoundations(List<Vector2Int> path, int minCount, int maxCount)
@@ -413,21 +485,27 @@ public class FILL_MAP_v4 : MonoBehaviour
                 foundationsMap.SetTile(new Vector3Int(cell.x, cell.y, 0), foundationTile);
                 FoundationCells.Add(cell);
                 placedCount++;
+
+                // --- НОВОЕ: Спавним Здание 0-го уровня и заносим в реестр ---
+                if (foundationPrefab != null)
+                {
+                    Vector3 spawnPos = foundationsMap.GetCellCenterWorld(new Vector3Int(cell.x, cell.y, 0));
+                    spawnPos.z = -0.1f; // Чуть выше тайлов
+
+                    GameObject foundObj = Instantiate(foundationPrefab, spawnPos, Quaternion.identity);
+                    tempMapObjects.Add(foundObj); // Добавляем сюда, чтобы генератор сам удалял их при рестарте карты
+
+                    IBuildingLogic logic = foundObj.GetComponent<IBuildingLogic>();
+                    if (logic != null && GridGameController.Instance != null && GridGameController.Instance.logic != null)
+                    {
+                        logic.InitializeAt(cell);
+                        GridGameController.Instance.logic.buildingInstances[cell] = logic;
+                    }
+                }
             }
 
             validCells.RemoveAt(randomIndex);
         }
-    }
-
-    public void StartGenerationWithRetries()
-    {
-        int maxAttempts = 10;
-        for (int i = 1; i <= maxAttempts; i++)
-        {
-            CleanupMap();
-            if (generation_roadmap()) return;
-        }
-        Debug.LogError("КРИТИЧЕСКАЯ ОШИБКА: Не удалось сгенерировать карту за 10 попыток!");
     }
 
     private void CleanupMap()
@@ -447,39 +525,7 @@ public class FILL_MAP_v4 : MonoBehaviour
         tempMapObjects.Clear();
     }
 
-    [Header("Текущий пул карт сессии")]
-    public List<CardData> sessionCardPool = new List<CardData>();
-
-    public void PrepareSessionCardPool()
-    {
-        sessionCardPool.Clear();
-
-        if (activeLeader != null && activeLeader.heroMainCards != null)
-        {
-            sessionCardPool.AddRange(activeLeader.heroMainCards);
-            if (activeLeader.heroSupportCards != null) sessionCardPool.AddRange(activeLeader.heroSupportCards);
-        }
-
-        if (activeSquad != null && activeSquad.Count > 0)
-        {
-            foreach (HeroData companion in activeSquad)
-            {
-                if (companion != null && companion.heroSupportCards != null)
-                    sessionCardPool.AddRange(companion.heroSupportCards);
-            }
-        }
-
-        if (activeFactions != null && activeFactions.Count > 0)
-        {
-            foreach (FactionData faction in activeFactions)
-            {
-                if (faction != null && faction.factionCards != null)
-                    sessionCardPool.AddRange(faction.factionCards);
-            }
-        }
-    }
-
-    void DrawMapBorder()
+    private void DrawMapBorder()
     {
         if (borderLineRenderer == null) return;
 
