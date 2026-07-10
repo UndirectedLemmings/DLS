@@ -35,10 +35,10 @@ public class CombatUnit
     public bool IsAttacker { get; private set; }
     public int SlotIndex { get; private set; }
 
-    // --- НОВАЯ, ЧИСТАЯ ЛОГИКА КУБОВ УРОНА ---
 
+    // --- НОВАЯ, ЧИСТАЯ ЛОГИКА КУБОВ УРОНА ---
     // Базовое количество кубов для атаки (обычно 1, если без оружия бьют кулаками)
-    private const int BASE_DICE = 1;
+    private const int BASE_DICE = 0;
 
     // CombatUnit просто забирает уже посчитанные бонусные кубы из контроллера фитов!
     public int CurrentWeaponBonusDice => BASE_DICE + (featController != null ? featController.BonusDiceCount : 0);
@@ -86,12 +86,37 @@ public class CombatUnit
         // 1. Создаем контроллер (передаем только начальные активные фиты)
         featController = new FeatController(progress.activeFeats, this);
 
-        // 2. ДОБАВЛЯЕМ фиты от стартовой экипировки (которую мы скопировали из UnitData)
-        progress.RegisterEquipmentFeats(featController);
+        // 2. ДОБАВЛЯЕМ фиты от стартовой экипировки напрямую
+        if (progress.equippedWeapon != null && progress.equippedWeapon.grantedFeats != null)
+            foreach (var feat in progress.equippedWeapon.grantedFeats)
+                featController.AddEquipmentFeat(feat);
+
+        if (progress.equippedArmor != null && progress.equippedArmor.grantedFeats != null)
+            foreach (var feat in progress.equippedArmor.grantedFeats)
+                featController.AddEquipmentFeat(feat);
+
+        if (progress.equippedAccessory != null && progress.equippedAccessory.grantedFeats != null)
+            foreach (var feat in progress.equippedAccessory.grantedFeats)
+                featController.AddEquipmentFeat(feat);
 
         // 3. Теперь контроллер всё знает (и бонусы, и лут с фитов)
     }
 
+    public void SetActiveVisual(bool isActive)
+    {
+        // Ищем соответствующий слот в UIManager и дергаем его
+        // У нас есть SlotIndex и IsAttacker
+        var ui = CombatUIManager.Instance;
+        if (IsAttacker) ui.heroSlots[SlotIndex].SetActive(isActive);
+        else ui.enemySlots[SlotIndex].SetActive(isActive);
+    }
+
+    public void SetTargetVisual(bool isTargeted)
+    {
+        var ui = CombatUIManager.Instance;
+        if (IsAttacker) ui.heroSlots[SlotIndex].SetTargeted(isTargeted);
+        else ui.enemySlots[SlotIndex].SetTargeted(isTargeted);
+    }
     public string UnitName
     {
         get

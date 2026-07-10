@@ -26,13 +26,34 @@ public class SquadUIManager : MonoBehaviour
     public TextMeshProUGUI roundCounterText; // Перетащи сюда текст со сцены
 
     // Добавь этот метод или вызови его внутри PopulateRosters
+    private void OnEnable()
+    {
+        // 1. Сразу обновляем состояние (чтобы не ждать события)
+        UpdateRoundCounter();
+
+        // 2. Подписываемся на СТАТИЧЕСКИЕ события
+        // Статика не требует доступа к Instance, что надежнее
+        GameManager.OnInventoryChanged += RefreshInventoryUI;
+        GameManager.OnRoundChanged += UpdateRoundCounter;
+    }
+
+    private void OnDisable()
+    {
+        // 3. ОБЯЗАТЕЛЬНО отписываемся от статических событий
+        GameManager.OnInventoryChanged -= RefreshInventoryUI;
+        GameManager.OnRoundChanged -= UpdateRoundCounter;
+    }
+
     private void UpdateRoundCounter()
     {
-        if (roundCounterText != null && GameManager.Instance != null)
+        // Проверка через Instance нужна только здесь, чтобы получить данные
+        if (GameManager.Instance != null && roundCounterText != null)
         {
+            Debug.Log($"АУ! круг обновлен: {GameManager.Instance.currentExpeditionRound}");
             roundCounterText.text = $"Круг: {GameManager.Instance.currentExpeditionRound}";
         }
     }
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -45,19 +66,7 @@ public class SquadUIManager : MonoBehaviour
         UpdateRoundCounter();
     }
 
-    private void OnEnable()
-    {
-        // Подписываемся на события менеджера
-        GameManager.OnInventoryChanged += RefreshInventoryUI;
-        GameManager.OnRoundChanged += UpdateRoundCounter; // Подписка на круги
-    }
-
-    private void OnDisable()
-    {
-        // ОБЯЗАТЕЛЬНО отписываемся!
-        GameManager.OnInventoryChanged -= RefreshInventoryUI;
-        GameManager.OnRoundChanged -= UpdateRoundCounter; // Отписка от кругов
-    }
+   
 
     public void UpdateSquadUI()
     {

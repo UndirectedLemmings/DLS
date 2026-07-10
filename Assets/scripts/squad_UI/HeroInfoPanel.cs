@@ -200,23 +200,56 @@ public class HeroInfoPanel : MonoBehaviour
 
     private void RefreshStatsTable(UnitProgress hero)
     {
-        if (enduranceValueText != null) enduranceValueText.text = FormatStatString(hero.TotalEndurance, hero.Template.baseEndurance);
-        if (strengthValueText != null) strengthValueText.text = FormatStatString(hero.TotalStrength, hero.Template.baseStrength);
-        if (perceptionValueText != null) perceptionValueText.text = FormatStatString(hero.TotalPerception, hero.Template.basePerception);
-        if (agilityValueText != null) agilityValueText.text = FormatStatString(hero.TotalAgility, hero.Template.baseAgility);
-        if (wisdomValueText != null) wisdomValueText.text = FormatStatString(hero.TotalWisdom, hero.Template.baseWisdom);
-        if (willValueText != null) willValueText.text = FormatStatString(hero.TotalWill, hero.Template.baseWill);
+        if (enduranceValueText != null) enduranceValueText.text = FormatStatString(hero, CharacterStatType.Endurance);
+        if (strengthValueText != null) strengthValueText.text = FormatStatString(hero, CharacterStatType.Strength);
+        if (perceptionValueText != null) perceptionValueText.text = FormatStatString(hero, CharacterStatType.Perception);
+        if (agilityValueText != null) agilityValueText.text = FormatStatString(hero, CharacterStatType.Agility);
+        if (wisdomValueText != null) wisdomValueText.text = FormatStatString(hero, CharacterStatType.Wisdom);
+        if (willValueText != null) willValueText.text = FormatStatString(hero, CharacterStatType.Will);
     }
 
-    private string FormatStatString(int totalValue, int baseValue)
+    private string FormatStatString(UnitProgress hero, CharacterStatType statType)
     {
-        int modifier = Mathf.FloorToInt((totalValue - 10) / 2f);
-        int diceCount = Mathf.Max(0, 1 + modifier);
+        if (hero == null || hero.Template == null)
+            return "?";
 
-        int equipmentBonus = totalValue - baseValue;
-        string bonusText = equipmentBonus > 0 ? $" (+{equipmentBonus})" : "";
+        // Получить базовое значение из шаблона
+        int baseValue = GetBaseStatValue(hero, statType);
 
-        return $"{totalValue}{bonusText}   [{diceCount}d10]";
+        // Получить классовый бонус (от ClassFeatData)
+        int classBonus = hero.GetClassBonusByStatType(statType);
+
+        // Итоговое значение = базовое + классовый бонус
+        int totalValue = baseValue + classBonus;
+
+        // Базовые кубики = базовое значение (это количество d10)
+        int baseDiceCount = baseValue;
+
+        // Бонус d10 от предметов (только от экипировки)
+        int equipmentDiceBonus = hero.GetEquipmentDiceBonusByStatType(statType);
+
+        // Форматируем: "2 (+1) [(2+1)d10]"
+        string classText = classBonus > 0 ? $" (+{classBonus})" : "";
+        string diceText = $"({baseDiceCount}+{equipmentDiceBonus})d10";
+
+        return $"{totalValue}{classText}   [{diceText}]";
+    }
+
+    /// <summary>
+    /// Получить базовое значение характеристики из шаблона
+    /// </summary>
+    private int GetBaseStatValue(UnitProgress hero, CharacterStatType statType)
+    {
+        switch (statType)
+        {
+            case CharacterStatType.Strength: return hero.Template.baseStrength;
+            case CharacterStatType.Endurance: return hero.Template.baseEndurance;
+            case CharacterStatType.Will: return hero.Template.baseWill;
+            case CharacterStatType.Wisdom: return hero.Template.baseWisdom;
+            case CharacterStatType.Agility: return hero.Template.baseAgility;
+            case CharacterStatType.Perception: return hero.Template.basePerception;
+            default: return 1;
+        }
     }
 
     private void ClearAllFeatContainers()

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 365050aee8136404383a12147d3bf4af, type: 3}
-  m_Name: test_frac_card
+  m_Name: "\u0416\u0438\u043B\u0438\u0449\u0435"
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardName: "\u0416\u0438\u043B\u0438\u0449\u0435 \u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0445
     \u0411\u043E\u043B\u0432\u0430\u043D\u0447\u0438\u043A\u043E\u0432"
@@ -20,4 +20,10 @@ MonoBehaviour:
   alignment: 1
   specificOwner: {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
   buildingPrefab: {fileID: 5935204555105438026, guid: 0766d011f169dde4ca270d5cf2a71f0f, type: 3}
-  effectPower: 0
+  effectType: 0
+  effectAmount: 0
+  buildingBlueprint: {fileID: 0}
+  goldChance: 0
+  minGold: 10
+  maxGold: 30
+  possibleBlueprints: []

@@ -1,91 +1,37 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class RoadSegmentManager : MonoBehaviour
 {
-    [Header("Road Data")]
-    public List<Vector2Int> roadCells = new List<Vector2Int>(); // Сюда FILL_MAP_v4 передаст координаты дороги
-    public FactionData ownerFaction;
+    [Header("Данные дороги")]
+    public List<Vector2Int> roadCells = new List<Vector2Int>(); // Клетки этого участка дороги
+    public FactionData ownerFaction; // Владелец дороги (фракция)
 
-    [Header("Spawn Settings")]
-    public float spawnInterval = 10f;
-
-    // НОВОЕ: Шанс стакинга (например, 25%)
+    [Header("Настройки карточного стакинга флагов")]
     [Range(0f, 1f)]
+    [Tooltip("Шанс состыковаться в существующий флаг на этой дороге, если он есть (0.25 = 25%)")]
     public float stackChance = 0.25f;
 
-    // Пул существ дороги
-    [SerializeField] private List<EnemyData> spawnPool = new List<EnemyData>();
-
-    private void Start()
+    // --- МЕТОД СПАВНА И КАРТОЧНОГО СТАКИНГА ---
+    // Вызывается напрямую из DwellingBuilding, когда постройка решает выпустить моба на дорогу
+    public void SpawnCreatureOnRoad(EnemyData enemyToSpawn)
     {
-        StartCoroutine(SpawnRoutine());
-    }
+        if (enemyToSpawn == null) return;
 
-    // Методы для модификации пула извне
-    public void AddCreatureToPool(EnemyData creature)
-    {
-        if (creature != null)
-        {
-            spawnPool.Add(creature);
-            Debug.Log($"В пул дороги добавлен: {creature.unitName}");
-        }
-    }
-
-    public void RemoveCreatureFromPool(EnemyData creature)
-    {
-        if (spawnPool.Contains(creature))
-        {
-            spawnPool.Remove(creature);
-            Debug.Log($"Из пула дороги удален: {creature.unitName}");
-        }
-    }
-
-    private IEnumerator SpawnRoutine()
-    {
-        while (true)
-        {
-            // УМНЫЙ ТАЙМЕР: тикает только когда игра НЕ на паузе
-            float currentTimer = 0f;
-            while (currentTimer < spawnInterval)
-            {
-                if (GameManager.Instance == null || !GameManager.Instance.isMapPaused)
-                {
-                    currentTimer += Time.deltaTime; // Увеличиваем таймер
-                }
-                yield return null; // Ждем до следующего кадра
-            }
-
-            // Если пул пуст, спавнить некого
-            if (spawnPool.Count == 0) continue;
-
-            SpawnRandomCreature();
-        }
-    }
-
-    private void SpawnRandomCreature()
-    {
         List<Vector2Int> emptyCells = new List<Vector2Int>();
         List<Vector2Int> occupiedByEnemies = new List<Vector2Int>();
 
+        // 1. Сортируем клетки нашей дороги через логическую сетку контроллера карты
         foreach (Vector2Int cell in roadCells)
         {
-            Vector2Int v3Cell = new Vector2Int(cell.x, cell.y);
-
-            // --- ОБНОВЛЕННАЯ ПРОВЕРКА ---
-            // Если тут фундамент, ИЛИ здание, ИЛИ перекресток — пропускаем!
-            if (FILL_MAP_v4.FoundationCells.Contains(v3Cell) ||
-                GridGameController.Instance.logic.buildingInstances.ContainsKey(cell) || // <--- ИСПРАВЛЕНО: теперь проверяем через ContainsKey словаря!
-                FILL_MAP_v4.IntersectionCells.Contains(v3Cell))
+            GameObject existingEnemyObj = GridGameController.Instance.logic.GetEnemyAt(cell);
+            if (existingEnemyObj != null)
             {
-                continue;
-            }
-
-            // 2. Разделяем клетки
-            if (GridGameController.Instance.logic.GetEnemyAt(cell) != null)
-            {
-                occupiedByEnemies.Add(cell);
+                // Если на клетке уже стоит объект с компонентом отряда (наш флаг встреч)
+                if (existingEnemyObj.GetComponent<EnemySquad>() != null)
+                {
+                    occupiedByEnemies.Add(cell);
+                }
             }
             else
             {
@@ -93,48 +39,48 @@ public class RoadSegmentManager : MonoBehaviour
             }
         }
 
-        if (emptyCells.Count == 0 && occupiedByEnemies.Count == 0) return;
-
-        EnemyData enemyToSpawn = spawnPool[Random.Range(0, spawnPool.Count)];
-
-        // --- ЛОГИКА УСИЛЕНИЯ (СТАКИНГА) ---
-        if (Random.value <= stackChance && occupiedByEnemies.Count > 0)
+        // 2. СТАКИНГ: Проверяем шанс слияния с уже существующим флагом встречи
+        if (occupiedByEnemies.Count > 0 && (emptyCells.Count == 0 || Random.value <= stackChance))
         {
             Vector2Int stackPos = occupiedByEnemies[Random.Range(0, occupiedByEnemies.Count)];
             GameObject existingEnemyObj = GridGameController.Instance.logic.GetEnemyAt(stackPos);
 
             if (existingEnemyObj != null)
             {
-                // Ищем наш новый компонент и добавляем в него моба
                 EnemySquad squad = existingEnemyObj.GetComponent<EnemySquad>();
                 if (squad != null)
                 {
                     squad.AddEnemy(enemyToSpawn);
+                    Debug.Log($"DLS: Стакинг сработал! Моб {enemyToSpawn.unitName} упал в отряд флага на клетке {stackPos}.");
+                    return; // Успешно упали в стак, прерываем метод
                 }
             }
-            return; // Завершаем метод
         }
 
-        // --- ЛОГИКА ОБЫЧНОГО СПАВНА ---
+        // 3. ОБЫЧНЫЙ СПАВН: Создаем новый независимый флаг на пустой клетке дороги
         if (emptyCells.Count > 0)
         {
             Vector2Int spawnPos = emptyCells[Random.Range(0, emptyCells.Count)];
             Vector3 worldPos = GridGameController.Instance.GetWorldPosition(spawnPos);
 
-            // Инстанциируем префаб
+            // Инстанцируем префаб моба (который и отображается как флаг/фишка встречи на глобальной карте)
             GameObject enemyObj = Instantiate(enemyToSpawn.enemyPrefab, worldPos, Quaternion.identity);
 
-            // НОВОЕ: Инициализируем отряд первым бойцом
+            // Инициализируем компонент EnemySquad на созданном флаге
             EnemySquad newSquad = enemyObj.GetComponent<EnemySquad>();
             if (newSquad != null)
             {
                 newSquad.Initialize(enemyToSpawn);
             }
 
-            // Регистрируем в сетке
+            // Регистрируем флаг в глобальной логической сетке
             GridGameController.Instance.logic.SetEnemyAt(spawnPos, enemyObj);
 
-            Debug.Log($"DLS: Заспавнен новый отряд {enemyToSpawn.unitName} на координатах {spawnPos}");
+            Debug.Log($"DLS: Спавн нового флага на клетке {spawnPos}. Первый юнит отряда: {enemyToSpawn.unitName}");
+        }
+        else
+        {
+            Debug.LogWarning($"DLS: На дороге нет свободных мест и не сработал стакинг для {enemyToSpawn.unitName}!");
         }
     }
 }

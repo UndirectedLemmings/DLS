@@ -19,31 +19,45 @@ public class CardPlayManager : MonoBehaviour
     }
 
     // Основной метод активации эффектов
-    public void ApplyCardEffect(CardData card)
+    public void ApplyCardEffect(CardData card, GameObject cardUIObject)
     {
+        bool success = false;
+
         switch (card.effectType)
         {
             case CardEffectType.GainGold:
                 GameManager.Instance.Gold += card.effectAmount;
-                Debug.Log($"[Эффект] Получено {card.effectAmount} золота.");
+                success = true;
                 break;
 
             case CardEffectType.GiveBuildingCard:
                 if (card.buildingBlueprint != null)
                 {
-                    // ВАЖНО: вызываем добавление в HandManager
                     HandManager.Instance.AddCardToHand(card.buildingBlueprint);
-                    Debug.Log($"[Эффект] Карта {card.cardName} выдала {card.buildingBlueprint.cardName}");
-                }
-                else
-                {
-                    Debug.LogWarning($"[Эффект] Ошибка: Карта {card.cardName} имеет тип GiveBuildingCard, но слот buildingBlueprint пуст!");
+                    success = true;
                 }
                 break;
 
             case CardEffectType.LootBox:
+                // Лутбокс всегда считается "использованным"
                 ProcessLootBox(card);
+                success = true;
                 break;
+        }
+
+        if (success)
+        {
+            // Удаляем из списка HandManager
+            HandManager.Instance.RemoveCard(card);
+
+            // Уничтожаем объект
+            if (cardUIObject != null) Destroy(cardUIObject);
+        }
+        else
+        {
+            // Если эффект не сработал (например, условия не выполнены),
+            // верни карту визуально на родителя (нужно будет сделать возврат в CardDrag)
+            Debug.LogWarning("Эффект карты не сработал");
         }
     }
 
@@ -56,6 +70,7 @@ public class CardPlayManager : MonoBehaviour
         {
             int goldFound = Random.Range(card.minGold, card.maxGold + 1);
             GameManager.Instance.Gold += goldFound;
+            GameManager.Instance.AddMissionProgress(ObjectiveType.CollectGold, goldFound);
             Debug.Log($"[Поиск] Вы нашли тайник! Получено {goldFound} золота. (Выпало на кубике: {roll})");
         }
         // Если золото не выпало, выдаем случайный чертеж
@@ -75,6 +90,7 @@ public class CardPlayManager : MonoBehaviour
                 // Защита от ошибки, если ты забыл добавить чертежи в список
                 Debug.LogWarning($"[Поиск] Карта '{card.cardName}' хотела выдать чертеж, но список 'possibleBlueprints' пуст! Выдаем утешительное золото.");
                 GameManager.Instance.Gold += card.minGold;
+                GameManager.Instance.AddMissionProgress(ObjectiveType.CollectGold, card.minGold);
             }
         }
     }

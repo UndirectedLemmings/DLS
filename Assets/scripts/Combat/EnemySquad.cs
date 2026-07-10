@@ -1,54 +1,45 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemySquad : MonoBehaviour, IMapInteractable
+public class EnemySquad : MonoBehaviour
 {
-    [Header("Данные отряда")]
-    // Список всех существ, которые сейчас находятся в этом отряде (стаке)
-    public List<EnemyData> squadMembers = new List<EnemyData>();
+    [Header("Текущий состав отряда под этим флагом")]
+    [Tooltip("Список всех мобов, которые накопились на этой клетке встречи")]
+    public List<EnemyData> accumulatedEnemies = new List<EnemyData>();
 
-
-    // Реализуем метод интерфейса
-    public string GetDescription()
-    {
-        if (squadMembers.Count == 0) return "Пустой флаг (ошибка)";
-
-        string name = squadMembers[0].unitName;
-        int count = squadMembers.Count;
-
-        // Возвращаем красивую строку. Знак \n делает перенос на новую строку
-        return $"Отряд: {name}\nЧисленность: {count}";
-    }
-
-    /// <summary>
-    /// Инициализация отряда первым существом при первичном спавне
-    /// </summary>
+    // Инициализация флага первым заспавнившимся мобом
     public void Initialize(EnemyData firstEnemy)
     {
-        squadMembers.Clear();
+        accumulatedEnemies.Clear();
         AddEnemy(firstEnemy);
     }
 
-    /// <summary>
-    /// Добавление нового существа в отряд (механика усиления/стакинга)
-    /// </summary>
-    public void AddEnemy(EnemyData newEnemy)
+    // Добавление моба при срабатывании стакинга дороги
+    public void AddEnemy(EnemyData extraEnemy)
     {
-        squadMembers.Add(newEnemy);
-        UpdateVisuals();
-        Debug.Log($"DLS: В отряд добавлен {newEnemy.unitName}. Теперь в отряде {squadMembers.Count} бойцов.");
+        if (extraEnemy != null)
+        {
+            accumulatedEnemies.Add(extraEnemy);
+            UpdateVisualIndicator();
+        }
     }
 
-    /// <summary>
-    /// Обновление визуала на карте (заглушка на будущее)
-    /// </summary>
-    private void UpdateVisuals()
+    // Метод, который будет дергать твоя система шагов (Character_move / GridGameController),
+    // когда герой наступает на эту клетку карты
+    public void EngageCombat()
     {
-        // Здесь мы будем обновлять UI над отрядом.
-        // Например, менять число в TextMeshPro, чтобы игрок видел размер угрозы.
+        if (accumulatedEnemies.Count == 0) return;
 
-        // Как бонус для тестов: можно слегка увеличивать размер модельки, если отряд растет
-        // float scale = 1f + (squadMembers.Count * 0.05f);
-        // transform.localScale = new Vector3(scale, scale, 1f);
+        Debug.Log($"DLS: Герой наступил на флаг! Передаем отряд из {accumulatedEnemies.Count} мобов в CombatManager.");
+
+        // Пример вызова (подставь имя своего метода старта боя из CombatManager):
+        // CombatManager.Instance.StartBattleWith(accumulatedEnemies);
+    }
+
+    private void UpdateVisualIndicator()
+    {
+        // Тултип или микро-счетчик: тут ты можешь выводить циферку количества мобов над флагом,
+        // чтобы игрок на карте видел, сколько врагов слиплось в один стак: 
+        // "accumulatedEnemies.Count"
     }
 }

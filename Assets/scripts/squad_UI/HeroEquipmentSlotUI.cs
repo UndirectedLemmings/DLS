@@ -84,6 +84,12 @@ public class HeroEquipmentSlotUI : MonoBehaviour, IDropHandler
 
             RefreshSlotVisual();
 
+            // Обновляем UI отряда (SquadPanel) чтобы отобразить новые бонусы
+            if (SquadUIManager.Instance != null)
+            {
+                SquadUIManager.Instance.UpdateSquadUI();
+            }
+
             // Если на герое (или на префабе карты) в этот момент работает FeatController, 
             // здесь можно вызвать пересчет пассивных фитов от экипировки:
             // targetHero.UpdateEquipmentFeats(); 

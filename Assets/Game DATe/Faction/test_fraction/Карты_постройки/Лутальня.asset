@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 365050aee8136404383a12147d3bf4af, type: 3}
+  m_Name: "\u041B\u0443\u0442\u0430\u043B\u044C\u043D\u044F"
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardName: "\u0421\u0432\u0430\u043B\u043A\u0430"
+  description: "\u041A\u0430\u0440\u0442\u0430 \u0421\u0432\u0430\u043B\u043A\u0438"
+  cardArt: {fileID: 1445084137899573599, guid: a8263189349c8aa43a1d10c23621ec12, type: 3}
+  type: 0
+  alignment: 1
+  specificOwner: {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
+  buildingPrefab: {fileID: 3879560851741185631, guid: b0ea98046446d93429ffee125f6188a5, type: 3}
+  effectType: 0
+  effectAmount: 0
+  buildingBlueprint: {fileID: 0}
+  goldChance: 0
+  minGold: 0
+  maxGold: 0
+  possibleBlueprints: []

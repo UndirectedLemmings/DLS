@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Feat_Front
   m_EditorClassIdentifier: Assembly-CSharp::WeaponFeatData
   featName: "\u0424\u0438\u0442_\u043F\u043E\u0441\u043E\u0445\u0430_\u0431\u0440\u043E\u0434\u044F\u0433\u0438"
-  description: 
+  description: "+1 \u043A \u0441\u0438\u043B\u0435"
   leaderOnly: 0
   icon: {fileID: 0}
   nature: 0
@@ -35,6 +35,12 @@ MonoBehaviour:
   bonusDamage: 0
   damageReduction: 0
   bonusDiceCount: 0
+  dropsLoot: 0
+  featLoot:
+    item: {fileID: 0}
+    dropChance: 0
+    minAmount: 0
+    maxAmount: 0
   preferredTarget: 0
   effectChance: 0
   effectDescription: 

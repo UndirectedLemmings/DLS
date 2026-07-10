@@ -32,17 +32,18 @@ public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         transform.position = Input.mousePosition;
     }
 
+    private bool isProcessing = false;
     public void OnEndDrag(PointerEventData eventData)
     {
         canvasGroup.blocksRaycasts = true;
-        BuildManager buildManager = FindFirstObjectByType<BuildManager>();
 
-        // 1. ЕСЛИ ЭТО ПОСТРОЙКА
+        // 1. ПОСТРОЙКИ
         if (myCardData.type == CardType.Building)
         {
+            BuildManager buildManager = FindFirstObjectByType<BuildManager>();
+
             if (buildManager != null && buildManager.TryBuildFromDrag(myCardData, Input.mousePosition))
             {
-                HandManager.Instance.RemoveCard(myCardData);
                 Destroy(gameObject);
             }
             else
@@ -51,21 +52,21 @@ public class CardDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 transform.SetSiblingIndex(originalSiblingIndex);
             }
         }
-        // 2. ЕСЛИ ЭТО КАРТА-ЭФФЕКТ (Лут / Чертежи / Золото)
+        // 2. ЭФФЕКТЫ
         else if (myCardData.type == CardType.Effect)
         {
-            // ВАЖНО: Вот здесь мы наконец-то дергаем твой менеджер!
+            // ВАЖНО: Мы просто вызываем эффект. 
+            // Если внутри ApplyCardEffect он сработает, менеджер сам удалит карту.
             if (CardPlayManager.Instance != null)
             {
-                CardPlayManager.Instance.ApplyCardEffect(myCardData);
+                CardPlayManager.Instance.ApplyCardEffect(myCardData, this.gameObject);
             }
             else
             {
-                Debug.LogError("На сцене нет CardPlayManager!");
+                // Если менеджера нет, просто возвращаем карту в руку
+                transform.SetParent(originalParent, false);
+                transform.SetSiblingIndex(originalSiblingIndex);
             }
-
-            HandManager.Instance.RemoveCard(myCardData); // Удаляем сыгранную карту из руки
-            Destroy(gameObject); // Уничтожаем UI карточки
         }
     }
 }

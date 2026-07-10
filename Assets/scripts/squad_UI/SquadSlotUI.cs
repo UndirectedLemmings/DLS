@@ -1,11 +1,15 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class SquadSlotUI : MonoBehaviour
 {
     [Header("Визуал слота")]
     public Image portraitImage;
     public Image highlightImage; // Рамка выделения
+
+    [Header("Текст бонусов (опционально)")]
+    public TextMeshProUGUI equipmentBonusText; // Текст для показа бонусов экипировки
 
     [Header("Кнопки")]
     public Button mainButton; // Главная невидимая кнопка на весь слот (для перестановки)
@@ -25,12 +29,24 @@ public class SquadSlotUI : MonoBehaviour
             portraitImage.sprite = progress.Template.portrait;
             portraitImage.color = Color.white;
             infoButton.gameObject.SetActive(true); // Показываем кнопку [i], т.к. герой есть
+
+            // Обновляем бонусы экипировки
+            if (equipmentBonusText != null)
+            {
+                equipmentBonusText.text = progress.GetFormattedEquipmentBonuses();
+            }
         }
         else
         {
             portraitImage.sprite = null;
             portraitImage.color = new Color(0.2f, 0.2f, 0.2f, 0.5f); // Пустой слот
             infoButton.gameObject.SetActive(false); // Прячем кнопку [i], если слот пуст
+
+            // Очищаем текст бонусов для пустого слота
+            if (equipmentBonusText != null)
+            {
+                equipmentBonusText.text = "";
+            }
         }
 
         if (highlightImage != null)

@@ -3300,6 +3300,7 @@ GameObject:
   - component: {fileID: 1325268007}
   - component: {fileID: 1325268009}
   - component: {fileID: 1325268010}
+  - component: {fileID: 1325268011}
   m_Layer: 0
   m_Name: BRB_CLick
   m_TagString: Untagged
@@ -3359,7 +3360,7 @@ MonoBehaviour:
   landscapeMap: {fileID: 901628910}
   roadsMap: {fileID: 962477675}
   foundationsMap: {fileID: 1044183824}
-  VoidTile: {fileID: 11400000, guid: 7950deb7bea759141ab65aef3ca297ea, type: 2}
+  VoidTile: {fileID: 11400000, guid: bdf9971a6865b25478902133fde7087b, type: 2}
   foundationTile: {fileID: 11400000, guid: dc5acfecc62449c4d91f09fbcbc9cb13, type: 2}
   foundationPrefab: {fileID: 6433661437827575342, guid: e16be3645016f4040805fff8d958511c, type: 3}
   startPrefab: {fileID: 2722136283180047193, guid: 7cab6c54e8e5360449c2bec3d60cb093, type: 3}
@@ -3408,7 +3409,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VoidDecorator
   targetTilemap: {fileID: 901628910}
   deepVoidTiles:
-  - {fileID: 11400000, guid: 7950deb7bea759141ab65aef3ca297ea, type: 2}
+  - {fileID: 11400000, guid: bdf9971a6865b25478902133fde7087b, type: 2}
   territorySpreadRadius: 8
   mapCenter: {x: 20, y: 20}
   heroOutwardBuffer: 1.5
@@ -3481,6 +3482,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: addf2a5dd2f777b4fa0e4eb17cb3be17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardPlayManager
+--- !u!114 &1325268011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1325267997}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 431b2e621f8c5fc4ca45d295d5229e9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GlobalFactionDirector
 --- !u!224 &1327783059 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4773449427841518178, guid: de578f8b233967246bb00df1afd3d71d, type: 3}

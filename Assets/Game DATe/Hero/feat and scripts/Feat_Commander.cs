@@ -1,3 +1,4 @@
+/*
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Feat_Commander", menuName = "Combat/Feats/Commander")]
@@ -26,3 +27,4 @@ public class CommanderFeatData : FeatData
         }
     }
 }
+*/

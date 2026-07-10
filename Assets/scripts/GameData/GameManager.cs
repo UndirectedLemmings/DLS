@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -28,11 +29,12 @@ public class GameManager : MonoBehaviour
 
     [Header("Состояние игры")]
     public bool isMapPaused = false;
-    public int currentExpeditionRound = 0;
+    public int currentExpeditionRound = 1;
 
 
     public static event System.Action OnInventoryChanged;
     public static event System.Action OnRoundChanged; // Новое событие для UI
+    public static event System.Action OnMissionCompleted; // Событие при выполнении миссии
 
     // Вызывай этот метод, когда герой проходит стартовую клетку
 
@@ -45,12 +47,13 @@ public class GameManager : MonoBehaviour
     // Проверка: выполнена ли миссия?
     public bool IsMissionCompleted => currentMission != null && missionProgress >= currentMission.targetValue;
 
+    public event Action OnNewLapStarted;
     // 1. Вызывается при загрузке карты экспедиции
     public void SetupRandomMission()
     {
         if (missionPool.Length > 0)
         {
-            int randomIndex = Random.Range(0, missionPool.Length);
+            int randomIndex = UnityEngine.Random.Range(0, missionPool.Length);
             currentMission = missionPool[randomIndex];
             missionProgress = 0;
             Debug.Log($"[Мисся] Выдано задание: {currentMission.missionName}. Цель: {currentMission.targetValue}");
@@ -74,17 +77,31 @@ public class GameManager : MonoBehaviour
             if (IsMissionCompleted)
             {
                 Debug.Log("🎉 Миссия выполнена! Вы можете вернуться на стартовый тайл для эвакуации.");
-                // Здесь можно вызвать событие (Event) для обновления UI
+                OnMissionCompleted?.Invoke();
+                 // Обновляем UI после изменения прогресса миссии
             }
         }
     }
 
+    // Временная метка последнего засчитанного круга (в секундах)
+    private float lastRoundTime = -10f;
+    private const float MIN_TIME_BETWEEN_ROUNDS = 5f; // Защита: не чаще раза в 5 секунд
+
     public void CompleteExpeditionRound()
     {
-        currentExpeditionRound++;
-        Debug.Log($"[GameManager] Завершен круг! Текущий круг экспедиции: {currentExpeditionRound}");
+        // Проверка: не слишком ли быстро мы крутимся?
+        if (Time.time - lastRoundTime < MIN_TIME_BETWEEN_ROUNDS)
+        {
+            Debug.Log("[GameManager] Слишком быстро! Игнорируем вызов круга.");
+            return;
+        }
 
-        // Оповещаем UI (и другие скрипты, если нужно), что круг сменился
+        lastRoundTime = Time.time;
+        currentExpeditionRound++;
+
+        Debug.Log($"[GameManager] Завершен круг №{currentExpeditionRound}");
+        
+        OnNewLapStarted?.Invoke();
         OnRoundChanged?.Invoke();
     }
 
@@ -182,7 +199,6 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
-
         Debug.Log($"<color=lime>[GameManager]</color> Сборка завершена. Итоговый пул карт сессии: {sessionCardPool.Count} шт.");
     }
 

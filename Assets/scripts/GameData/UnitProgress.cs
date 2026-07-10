@@ -70,49 +70,7 @@ public class UnitProgress
     // (Предполагается, что в ItemData у тебя есть поля бонусов, например public int strengthBonus;)
 
 
-    // Метод для смены экипировки прямо на глобальной карте (в меню или у сокровищницы)
-    public void EquipItem(ItemData newItem, ItemSlotType slot)
-    {
-        ItemData oldItem = null;
 
-        // 1. Снимаем старую вещь
-        switch (slot)
-        {
-            case ItemSlotType.Weapon:
-                oldItem = equippedWeapon;
-                equippedWeapon = newItem;
-                break;
-            case ItemSlotType.Armor:
-                oldItem = equippedArmor;
-                equippedArmor = newItem;
-                break;
-            case ItemSlotType.Accessory:
-                oldItem = equippedAccessory;
-                equippedAccessory = newItem;
-                break;
-        }
-
-        // 2. Отключаем фиты старой вещи (если она была)
-        if (oldItem != null && oldItem.grantedFeats != null && overworldFeats != null)
-        {
-            foreach (var feat in oldItem.grantedFeats)
-            {
-                overworldFeats.RemoveEquipmentFeat(feat);
-            }
-        }
-
-        // 3. Включаем фиты новой вещи
-        if (newItem != null && newItem.grantedFeats != null && overworldFeats != null)
-        {
-            foreach (var feat in newItem.grantedFeats)
-            {
-                overworldFeats.AddEquipmentFeat(feat);
-            }
-        }
-
-        // 4. Корректируем текущее здоровье, чтобы оно не превысило новый (возможно уменьшившийся) MaxEP
-        currentHealthyEP = Mathf.Clamp(currentHealthyEP, 0, MaxEP - currentTiredEP - currentWoundedEP);
-    }
 
     /// <summary>
     /// Собирает все фиты героя: врожденные, классовые и от экипировки.
@@ -163,13 +121,7 @@ public class UnitProgress
             }
         }
 
-        // 2. ИСПРАВЛЕНО: Безопасно проверяем, является ли этот юнит Героем
-        if (Template is HeroData heroTemplate)
-        {
-            return heroTemplate.territoryVoidTiles;
-        }
-
-        // 3. Если это обычный моб или нет тайлов — возвращаем пустоту
+        // 2. Если это обычный моб или нет тайлов — возвращаем пустоту
         return null;
     }
     /// <summary>
@@ -188,29 +140,144 @@ public class UnitProgress
             }
         }
 
-        // 2. Страховочный откат (если ты еще не удалил поле heroRoadTile из кода HeroData)
-        if (Template is HeroData heroTemplate && heroTemplate.heroRoadTile != null)
-        {
-            return heroTemplate.heroRoadTile;
-        }
-
         // Если дошли сюда — дороги нет вообще
         return null;
     }
 
-    // Добавь этот метод внутрь UnitProgress.cs
-
-    public void RegisterEquipmentFeats(FeatController controller)
+    /// <summary>
+    /// Вычисляет бонусы кубиков (d10) от экипировки по каждой характеристике.
+    /// Возвращает словарь: {CharacterStatType -> количество кубиков}
+    /// </summary>
+    public Dictionary<CharacterStatType, int> GetEquipmentDiceBonuses()
     {
-        if (controller == null) return;
+        var bonuses = new Dictionary<CharacterStatType, int>
+        {
+            { CharacterStatType.Strength, 0 },
+            { CharacterStatType.Endurance, 0 },
+            { CharacterStatType.Will, 0 },
+            { CharacterStatType.Wisdom, 0 },
+            { CharacterStatType.Agility, 0 },
+            { CharacterStatType.Perception, 0 }
+        };
+
+        // Собираем фиты из всей экипировки
+        List<FeatData> equipmentFeats = new List<FeatData>();
 
         if (equippedWeapon != null && equippedWeapon.grantedFeats != null)
-            foreach (var feat in equippedWeapon.grantedFeats) controller.AddEquipmentFeat(feat);
+            equipmentFeats.AddRange(equippedWeapon.grantedFeats);
 
         if (equippedArmor != null && equippedArmor.grantedFeats != null)
-            foreach (var feat in equippedArmor.grantedFeats) controller.AddEquipmentFeat(feat);
+            equipmentFeats.AddRange(equippedArmor.grantedFeats);
 
         if (equippedAccessory != null && equippedAccessory.grantedFeats != null)
-            foreach (var feat in equippedAccessory.grantedFeats) controller.AddEquipmentFeat(feat);
+            equipmentFeats.AddRange(equippedAccessory.grantedFeats);
+
+        // Суммируем бонусы кубиков по характеристикам
+        foreach (var feat in equipmentFeats)
+        {
+            if (feat == null) continue;
+
+            if (feat.bonusStrength > 0) bonuses[CharacterStatType.Strength] += feat.bonusStrength;
+            if (feat.bonusEndurance > 0) bonuses[CharacterStatType.Endurance] += feat.bonusEndurance;
+            if (feat.bonusWill > 0) bonuses[CharacterStatType.Will] += feat.bonusWill;
+            if (feat.bonusWisdom > 0) bonuses[CharacterStatType.Wisdom] += feat.bonusWisdom;
+            if (feat.bonusAgility > 0) bonuses[CharacterStatType.Agility] += feat.bonusAgility;
+            if (feat.bonusPerception > 0) bonuses[CharacterStatType.Perception] += feat.bonusPerception;
+        }
+
+        return bonuses;
     }
+
+    /// <summary>
+    /// Форматирует бонусы в строку "(+2d10 Agility, +1d10 Strength)"
+    /// Показывает только те характеристики, у которых есть бонусы
+    /// </summary>
+    public string GetFormattedEquipmentBonuses()
+    {
+        var bonuses = GetEquipmentDiceBonuses();
+        List<string> bonusStrings = new List<string>();
+
+        foreach (var kvp in bonuses)
+        {
+            if (kvp.Value > 0)
+            {
+                bonusStrings.Add($"+{kvp.Value}d10 {kvp.Key}");
+            }
+        }
+
+        if (bonusStrings.Count == 0)
+            return "Нет бонусов";
+
+        return string.Join(", ", bonusStrings);
+    }
+
+    /// <summary>
+    /// Получить бонус d10 от экипировки для конкретной характеристики
+    /// (ТОЛЬКО от предметов, не от класса!)
+    /// </summary>
+    public int GetEquipmentDiceBonusByStatType(CharacterStatType statType)
+    {
+        int bonus = 0;
+
+        List<FeatData> equipmentFeats = new List<FeatData>();
+
+        if (equippedWeapon != null && equippedWeapon.grantedFeats != null)
+            equipmentFeats.AddRange(equippedWeapon.grantedFeats);
+
+        if (equippedArmor != null && equippedArmor.grantedFeats != null)
+            equipmentFeats.AddRange(equippedArmor.grantedFeats);
+
+        if (equippedAccessory != null && equippedAccessory.grantedFeats != null)
+            equipmentFeats.AddRange(equippedAccessory.grantedFeats);
+
+        foreach (var feat in equipmentFeats)
+        {
+            if (feat == null) continue;
+
+            switch (statType)
+            {
+                case CharacterStatType.Strength:
+                    if (feat.bonusStrength > 0) bonus += feat.bonusStrength;
+                    break;
+                case CharacterStatType.Endurance:
+                    if (feat.bonusEndurance > 0) bonus += feat.bonusEndurance;
+                    break;
+                case CharacterStatType.Will:
+                    if (feat.bonusWill > 0) bonus += feat.bonusWill;
+                    break;
+                case CharacterStatType.Wisdom:
+                    if (feat.bonusWisdom > 0) bonus += feat.bonusWisdom;
+                    break;
+                case CharacterStatType.Agility:
+                    if (feat.bonusAgility > 0) bonus += feat.bonusAgility;
+                    break;
+                case CharacterStatType.Perception:
+                    if (feat.bonusPerception > 0) bonus += feat.bonusPerception;
+                    break;
+            }
+        }
+
+        return bonus;
+    }
+
+    /// <summary>
+    /// Получить бонус от класса (ClassFeatData) для конкретной характеристики
+    /// </summary>
+    public int GetClassBonusByStatType(CharacterStatType statType)
+    {
+        if (classFeat == null || overworldFeats == null)
+            return 0;
+
+        switch (statType)
+        {
+            case CharacterStatType.Strength: return overworldFeats.BonusStrength;
+            case CharacterStatType.Endurance: return overworldFeats.BonusEndurance;
+            case CharacterStatType.Will: return overworldFeats.BonusWill;
+            case CharacterStatType.Wisdom: return overworldFeats.BonusWisdom;
+            case CharacterStatType.Agility: return overworldFeats.BonusAgility;
+            case CharacterStatType.Perception: return overworldFeats.BonusPerception;
+            default: return 0;
+        }
+    }
+
 }

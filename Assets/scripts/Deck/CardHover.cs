@@ -1,22 +1,28 @@
 using UnityEngine;
-using UnityEngine.EventSystems; // Обязательно для событий UI
+using UnityEngine.EventSystems;
 
 public class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    private string tooltipMessage;
+    [HideInInspector] public CardData myCardData;
 
-    // Метод для записи текста (его будет вызывать CardHandUI)
-    public void SetupTooltip(string text)
+    private void Start()
     {
-        tooltipMessage = text;
+        // Автоматически берем данные карты из скрипта CardDrag, 
+        // который висит на этом же объекте карточки.
+        CardDrag dragScript = GetComponent<CardDrag>();
+        if (dragScript != null)
+        {
+            myCardData = dragScript.myCardData;
+        }
     }
 
     // Срабатывает, когда мышка входит в границы карточки
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (TooltipManager.Instance != null && !string.IsNullOrEmpty(tooltipMessage))
+        // Проверяем, что менеджер существует и данные карты загружены
+        if (TooltipManager.Instance != null && myCardData != null)
         {
-            TooltipManager.Instance.ShowTooltip(tooltipMessage);
+            TooltipManager.Instance.ShowTooltip(myCardData.cardName, myCardData.description);
         }
     }
 
@@ -29,7 +35,7 @@ public class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
         }
     }
 
-    // Защита от зависания тултипа, если карточку уничтожили (например, вытеснили лимитом)
+    // Защита от зависания тултипа, если карточку уничтожили (например, разыграли или сбросили)
     private void OnDisable()
     {
         if (TooltipManager.Instance != null)

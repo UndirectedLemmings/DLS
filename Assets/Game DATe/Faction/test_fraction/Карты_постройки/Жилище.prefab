@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: -1716617471411248118}
   - component: {fileID: -2967174048540773047}
   m_Layer: 0
-  m_Name: test_faction_bild
+  m_Name: "\u0416\u0438\u043B\u0438\u0449\u0435"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -105,7 +105,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d90e7b45c829ff439434be55586a08a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DwellingBuilding
-  spawnedCreature: {fileID: 11400000, guid: 59fab469858d5c840b93a3985f25cdcc, type: 2}
+  creaturesToSpawn:
+  - creature: {fileID: 11400000, guid: 59fab469858d5c840b93a3985f25cdcc, type: 2}
+    count: 1
+    spawnChance: 100
+  - creature: {fileID: 11400000, guid: 59fab469858d5c840b93a3985f25cdcc, type: 2}
+    count: 1
+    spawnChance: 50
+  - creature: {fileID: 11400000, guid: e6394aaf1e11b1442995c28f34e54327, type: 2}
+    count: 1
+    spawnChance: 100
 --- !u!61 &-2967174048540773047
 BoxCollider2D:
   m_ObjectHideFlags: 0

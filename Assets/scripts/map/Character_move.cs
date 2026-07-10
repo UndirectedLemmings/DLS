@@ -11,7 +11,6 @@ public class Character_move : MonoBehaviour
     public Tilemap Tilemap;
     public float crossroadWaitTime = 0.5f;
 
-    // Внутренняя переменная для скорости (берется из gameSettings)
     private float currentSpeed = 5f;
 
     private bool isMoving = false;
@@ -23,12 +22,17 @@ public class Character_move : MonoBehaviour
     private Vector2Int startNode;
     private HandManager HandManager;
 
-    // --- ДОБАВЛЕНО: Публичное свойство текущей позиции для UI Эвакуации ---
+    // --- ДОБАВЛЕНО: Надежный счетчик шагов вместо флага ---
+    private int stepsSinceLastLap = 0;
+
+    // Память последней посещенной клетки
+    private Vector2Int lastVisitedCell = new Vector2Int(-9999, -9999);
+
     public Vector2Int currentPosition { get; private set; }
     private ExpeditionExitController exitUI;
+
     private void Awake()
     {
-        // Безопасное получение настроек при старте игры
         if (gameSettings != null)
         {
             currentSpeed = gameSettings.heroMoveSpeed;
@@ -43,26 +47,31 @@ public class Character_move : MonoBehaviour
     private void Start()
     {
         HandManager = FindFirstObjectByType<HandManager>();
-
-        // Находим интерфейс один раз при появлении героя, чтобы не искать каждый шаг
         exitUI = FindFirstObjectByType<ExpeditionExitController>();
     }
 
     public void StartJourney(Vector2Int startPos)
     {
         startNode = startPos;
-        currentPosition = startPos; // Устанавливаем начальную позицию
+        currentPosition = startPos;
+
+        // Сбрасываем счетчики при старте
+        stepsSinceLastLap = 0;
+        lastVisitedCell = new Vector2Int(-9999, -9999);
+
         RequestNextRoute(startPos);
     }
 
     private void Update()
     {
-        // Проверяем, не включена ли пауза
         if (GameManager.Instance != null && GameManager.Instance.isMapPaused)
             return;
 
         if (!isMoving || isWaiting || currentPath == null || currentPath.Count == 0)
             return;
+
+        // Защита от выхода за границы массива
+        if (waypointIndex >= currentPath.Count) return;
 
         Vector2Int targetCell2D = currentPath[waypointIndex];
         GameObject enemyObj = GridGameController.Instance.logic.GetEnemyAt(targetCell2D);
@@ -71,14 +80,12 @@ public class Character_move : MonoBehaviour
         {
             isMoving = false;
 
-            // CombatManager сам возьмет формацию напрямую из GameManager!
-            // Собираем только врагов из объекта, в который мы врезались
             List<UnitData> enemyUnits = new List<UnitData>();
             EnemySquad enemySquadComponent = enemyObj.GetComponent<EnemySquad>();
 
             if (enemySquadComponent != null)
             {
-                foreach (var member in enemySquadComponent.squadMembers)
+                foreach (var member in enemySquadComponent.accumulatedEnemies)
                     if (member != null) enemyUnits.Add(member);
             }
 
@@ -87,33 +94,31 @@ public class Character_move : MonoBehaviour
         }
 
         Vector3 targetWorldPos = Tilemap.GetCellCenterWorld(new Vector3Int(targetCell2D.x, targetCell2D.y, 0));
-
         transform.position = Vector3.MoveTowards(transform.position, targetWorldPos, currentSpeed * Time.deltaTime);
 
         if (Vector3.Distance(transform.position, targetWorldPos) <= 0.001f)
         {
             currentPosition = targetCell2D;
 
-            // Здания (включая фундаменты 0-го уровня) сами решают, что делать с героем
-            CheckForBuilding(targetCell2D);
-
-            // === ДОБАВЛЕНО: Push-логика для интерфейса выхода ===
-            if (exitUI != null && GameManager.Instance != null)
+            // Выполняем логику клетки ТОЛЬКО если мы на нее физически пришли с другой клетки
+            if (currentPosition != lastVisitedCell)
             {
-                if (targetCell2D == GameManager.Instance.startTilePosition)
+                lastVisitedCell = currentPosition;
+
+                // === ГЛАВНЫЙ ФИКС: Считаем реальные физические шаги ===
+                stepsSinceLastLap++;
+
+                CheckForBuilding(targetCell2D);
+
+                if (exitUI != null && GameManager.Instance != null)
                 {
-                    // Сообщаем UI, что мы на старте
-                    exitUI.OnSteppedOnStartTile();
-                }
-                else
-                {
-                    // Сообщаем UI, что мы ушли со старта
-                    exitUI.OnLeftStartTile();
+                    if (targetCell2D == GameManager.Instance.startTilePosition)
+                        exitUI.OnSteppedOnStartTile();
+                    else
+                        exitUI.OnLeftStartTile();
                 }
             }
-            // ====================================================
 
-            // Только после проверок переключаем индекс на следующую точку
             waypointIndex++;
 
             if (waypointIndex >= currentPath.Count)
@@ -132,15 +137,8 @@ public class Character_move : MonoBehaviour
     {
         isWaiting = true;
 
-        if (crossroadCell == startNode)
-        {
-            lapsCount++;
-            // --- ДОБАВЛЕНО: Сообщаем GameManager'у, что круг завершен! ---
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.CompleteExpeditionRound();
-            }
-        }
+        // УДАЛЕНО: Сюда больше не нужно лезть с логикой lapsCount++, 
+        // потому что теперь это делает Building_Start.OnHeroVisit()
 
         if (crossroadWaitTime > 0) yield return new WaitForSeconds(crossroadWaitTime);
 
@@ -154,6 +152,12 @@ public class Character_move : MonoBehaviour
         {
             currentPath = switcher.GetActivePath();
             waypointIndex = 0;
+
+            if (currentPath != null && currentPath.Count > 1 && currentPath[0] == currentPosition)
+            {
+                waypointIndex = 1;
+            }
+
             isMoving = true;
         }
         else
@@ -164,24 +168,12 @@ public class Character_move : MonoBehaviour
 
     public int Round() => lapsCount;
 
-    // --- ЛОГИКА ПОСЕЩЕНИЯ СООРУЖЕНИЙ ---
     private void CheckForBuilding(Vector2Int cellPos)
     {
-        if (GridGameController.Instance == null || GridGameController.Instance.logic == null)
-        {
-            Debug.LogWarning("[MOVE DEBUG] GridGameController или его логика отсутствуют на сцене!");
-            return;
-        }
-
         var instances = GridGameController.Instance.logic.buildingInstances;
-        if (instances == null)
-        {
-            Debug.LogWarning("[MOVE DEBUG] Словарь buildingInstances в LogicalGrid равен null!");
-            return;
-        }
-
         if (instances.TryGetValue(cellPos, out IBuildingLogic building))
         {
+            // Герой просто «стучит» в здание, а здание само решает, Старт это или что-то другое
             building.OnHeroVisit(this);
         }
     }

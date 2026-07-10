@@ -3,39 +3,42 @@ using TMPro;
 
 public class TooltipManager : MonoBehaviour
 {
-    public static TooltipManager Instance; // Паттерн Синглтон для быстрого доступа
+    public static TooltipManager Instance; // Паттерн Синглтон
 
+    [Header("Ссылки на UI")]
     public GameObject tooltipPanel;
-    public TextMeshProUGUI tooltipText;
+    public TextMeshProUGUI titleText;       // Добавили заголовок (название карты/фита)
+    public TextMeshProUGUI descriptionText; // Твое текущее поле описания
 
     private void Awake()
     {
-        // Настраиваем синглтон
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
-        HideTooltip(); // Прячем при старте
+        HideTooltip();
     }
 
     private void Update()
     {
-        // Если тултип активен, заставляем его следовать за мышкой
         if (tooltipPanel.activeSelf)
         {
-            // Небольшой сдвиг, чтобы курсор не перекрывал текст
+            // Сдвиг, чтобы курсор не перекрывал текст
             tooltipPanel.transform.position = Input.mousePosition + new Vector3(15f, -15f, 0f);
         }
     }
 
-    public void ShowTooltip(string text)
+    // Универсальный метод вызова
+    public void ShowTooltip(string title, string description)
     {
-        tooltipText.text = text;
+        titleText.text = title;
+        descriptionText.text = description;
         tooltipPanel.SetActive(true);
     }
 
     public void HideTooltip()
     {
         tooltipPanel.SetActive(false);
-        tooltipText.text = "";
+        titleText.text = "";
+        descriptionText.text = "";
     }
 }

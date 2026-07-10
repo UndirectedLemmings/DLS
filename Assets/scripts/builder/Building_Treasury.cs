@@ -11,11 +11,21 @@ public enum VisitRequirement
 
 public class Building_Treasury : MonoBehaviour, IBuildingLogic
 {
-    [Header("Настройки Лута")]
+    [Header("Настройки Лута (Предметы)")]
     [Tooltip("Пул возможных предметов для этого здания")]
     public List<ItemData> buildingLootPool;
     [Tooltip("Сколько предметов выдавать за одно посещение")]
-    public int itemsToDrop = 1;
+    public int itemsToDrop = 0;
+
+    [Header("Настройки Лута (Карты)")]
+    [Tooltip("Сколько карт выдавать за одно посещение")]
+    public int cardsToDrop = 0;
+
+    [Header("Настройки Лута (Ресурсы)")]
+    [Tooltip("Сколько золота выдавать за посещение")]
+    public int goldToDrop = 0;
+    // Если в GameManager есть другие ресурсы (Дерево, Камень и т.д.), 
+    // можешь добавить их сюда по аналогии с золотом.
 
     [Header("Условия и Оплата")]
     public VisitRequirement requirementType = VisitRequirement.None;
@@ -26,7 +36,6 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
     private int lastVisitedLap = -1;
 
     private Vector2Int myPosition;
-    // ИСПРАВЛЕНО: Убрали переменную isVisited, из-за которой был warning
     private SpriteRenderer spriteRenderer;
 
     private void Awake()
@@ -56,10 +65,10 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
             return;
         }
 
-        if (buildingLootPool == null || buildingLootPool.Count == 0)
+        // Проверяем, настроен ли вообще какой-либо лут
+        if (itemsToDrop == 0 && cardsToDrop == 0 && goldToDrop == 0)
         {
-            Debug.LogError($"[BUILDING DEBUG] КРИТИЧЕСКАЯ ОШИБКА: У префаба {gameObject.name} ПУСТОЙ список лута в инспекторе!");
-            return;
+            Debug.LogWarning($"[BUILDING DEBUG] Предупреждение: У префаба {gameObject.name} не настроена выдача лута, карт или ресурсов!");
         }
 
         PayForVisit();
@@ -102,15 +111,45 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
 
     private void GiveLoot()
     {
-        if (buildingLootPool == null || buildingLootPool.Count == 0) return;
-
-        for (int i = 0; i < itemsToDrop; i++)
+        // 1. Выдача предметов
+        if (itemsToDrop > 0 && buildingLootPool != null && buildingLootPool.Count > 0)
         {
-            int randomIndex = Random.Range(0, buildingLootPool.Count);
-            ItemData droppedItem = buildingLootPool[randomIndex];
+            for (int i = 0; i < itemsToDrop; i++)
+            {
+                int randomIndex = Random.Range(0, buildingLootPool.Count);
+                ItemData droppedItem = buildingLootPool[randomIndex];
 
-            GameManager.Instance.AddLootToInventory(droppedItem);
-            Debug.Log($"DLS: Найдено в {gameObject.name}: {droppedItem.itemName}");
+                GameManager.Instance.AddLootToInventory(droppedItem);
+                Debug.Log($"DLS: Найдено в {gameObject.name}: {droppedItem.itemName}");
+            }
+        }
+        else if (itemsToDrop > 0)
+        {
+            Debug.LogError($"[BUILDING DEBUG] ОШИБКА: itemsToDrop > 0, но список buildingLootPool пуст у {gameObject.name}!");
+        }
+
+        // 2. Выдача карт
+        if (cardsToDrop > 0)
+        {
+            if (HandManager.Instance != null)
+            {
+                for (int i = 0; i < cardsToDrop; i++)
+                {
+                    HandManager.Instance.GiveRandomCardFromPool();
+                }
+                Debug.Log($"DLS: Получено карт в {gameObject.name}: {cardsToDrop}");
+            }
+            else
+            {
+                Debug.LogWarning($"[BUILDING DEBUG] ОШИБКА: HandManager.Instance не найден, карты не выданы!");
+            }
+        }
+
+        // 3. Выдача ресурсов (например, золота)
+        if (goldToDrop > 0)
+        {
+            GameManager.Instance.Gold += goldToDrop;
+            Debug.Log($"DLS: Найдено золота в {gameObject.name}: {goldToDrop}");
         }
     }
 }

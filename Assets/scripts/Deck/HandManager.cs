@@ -80,10 +80,9 @@ public class HandManager : MonoBehaviour
 
     public void RemoveCard(CardData card)
     {
-        if (playerHand.Contains(card))
-        {
-            playerHand.Remove(card);
-            if (handUI != null) handUI.UpdateUI(playerHand);
-        }
+        playerHand.Remove(card); // Удаляет по ссылке
+        handUI.UpdateUI(playerHand);
     }
+
+
 }

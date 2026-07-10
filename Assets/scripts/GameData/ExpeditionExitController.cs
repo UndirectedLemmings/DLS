@@ -17,7 +17,8 @@ public class ExpeditionExitController : MonoBehaviour
 
     private void Start()
     {
-        if (exitPopupPanel != null) exitPopupPanel.SetActive(false);
+        // Изначально скрываем панель и выключаем паузу (на случай если она была включена)
+        SetPopupState(false);
 
         if (btnReturnToCity != null) btnReturnToCity.onClick.AddListener(ReturnToCity);
         if (btnContinue != null) btnContinue.onClick.AddListener(ContinueExpedition);
@@ -25,6 +26,28 @@ public class ExpeditionExitController : MonoBehaviour
 
         // Изначально кнопка эвакуации выключена (герой ведь только появился и начнет шагать)
         if (btnEvacuate != null) btnEvacuate.interactable = false;
+
+        // Подписываемся на событие выполнения миссии
+        GameManager.OnMissionCompleted += CompleteObjective;
+    }
+
+    private void OnDestroy()
+    {
+        // Отписываемся при уничтожении объекта
+        GameManager.OnMissionCompleted -= CompleteObjective;
+    }
+
+    // === НОВЫЙ МЕТОД ДЛЯ УПРАВЛЕНИЯ ОКНОМ И ПАУЗОЙ ===
+    private void SetPopupState(bool isVisible)
+    {
+        if (exitPopupPanel != null)
+            exitPopupPanel.SetActive(isVisible);
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.isMapPaused = isVisible;
+            Debug.Log(isVisible ? "[UI] Пауза включена: окно выхода открыто" : "[UI] Пауза выключена: окно выхода закрыто");
+        }
     }
 
     // === НОВАЯ РЕАКТИВНАЯ ЛОГИКА ===
@@ -37,10 +60,10 @@ public class ExpeditionExitController : MonoBehaviour
         // 1. Включаем возможность сбежать
         if (btnEvacuate != null) btnEvacuate.interactable = true;
 
-        // 2. Если миссия выполнена и мы не в свободном режиме - сами показываем окно победы!
-        if (isObjectiveCompleted && !continueMode)
+        // 2. Если миссия выполнена и мы не в свободном режиме - сами показываем окно победы и ставим паузу!
+        if (GameManager.Instance.IsMissionCompleted && !continueMode)
         {
-            if (exitPopupPanel != null) exitPopupPanel.SetActive(true);
+            SetPopupState(true);
         }
     }
 
@@ -52,8 +75,8 @@ public class ExpeditionExitController : MonoBehaviour
         // 1. Выключаем эвакуацию
         if (btnEvacuate != null) btnEvacuate.interactable = false;
 
-        // 2. На всякий случай прячем окно победы (вдруг игрок нажал "Продолжить" или просто ушел)
-        if (exitPopupPanel != null) exitPopupPanel.SetActive(false);
+        // 2. На всякий случай прячем окно победы и снимаем с паузы
+        SetPopupState(false);
     }
 
     // ===================================
@@ -69,6 +92,10 @@ public class ExpeditionExitController : MonoBehaviour
     private void TryEvacuate()
     {
         Debug.Log("<color=red>[ЭКСПЕДИЦИЯ]</color> Эвакуация! Отряд отступает.");
+
+        // Обязательно снимаем игру с паузы перед переходом на другую сцену
+        SetPopupState(false);
+
         if (GameManager.Instance != null) GameManager.Instance.FinishExpedition(false);
         SceneManager.LoadScene(citySceneName);
     }
@@ -76,6 +103,10 @@ public class ExpeditionExitController : MonoBehaviour
     private void ReturnToCity()
     {
         Debug.Log("<color=lime>[ЭКСПЕДИЦИЯ]</color> Завершаем поход и возвращаемся в город...");
+
+        // Обязательно снимаем игру с паузы перед переходом на другую сцену
+        SetPopupState(false);
+
         if (GameManager.Instance != null) GameManager.Instance.FinishExpedition(true);
         SceneManager.LoadScene(citySceneName);
     }
@@ -83,7 +114,9 @@ public class ExpeditionExitController : MonoBehaviour
     private void ContinueExpedition()
     {
         Debug.Log("<color=orange>[ЭКСПЕДИЦИЯ]</color> Включаем свободный режим.");
-        if (exitPopupPanel != null) exitPopupPanel.SetActive(false);
         continueMode = true;
+
+        // Закрываем окно и возвращаем ход игре
+        SetPopupState(false);
     }
 }

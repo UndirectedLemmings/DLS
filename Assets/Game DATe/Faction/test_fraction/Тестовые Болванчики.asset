@@ -10,12 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 94a1a774de94ed946ace0eea70f70756, type: 3}
-  m_Name: Test_Faction
+  m_Name: "\u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0435 \u0411\u043E\u043B\u0432\u0430\u043D\u0447\u0438\u043A\u0438"
   m_EditorClassIdentifier: Assembly-CSharp::FactionData
   factionName: "\u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0435 \u0411\u043E\u043B\u0432\u0430\u043D\u0447\u0438\u043A\u0438"
   factionRoadTile: {fileID: 11400000, guid: b217c32e6da79ea428f8c1edf8152f53, type: 2}
-  extraFoundations: 0
+  extraFoundations: 1
   factionCards:
   - {fileID: 11400000, guid: 0e365c9ea74b94d40a35e1187493f4ce, type: 2}
+  - {fileID: 11400000, guid: 0ef9179a4d8596e43a567213cf9d0e68, type: 2}
   territoryVoidTiles:
   - {fileID: 11400000, guid: 2faed188e28fe7a449289e9a78767d0f, type: 2}
+  baseFactionMobs:
+  - {fileID: 11400000, guid: 59fab469858d5c840b93a3985f25cdcc, type: 2}
+  - {fileID: 11400000, guid: e6394aaf1e11b1442995c28f34e54327, type: 2}
+  - {fileID: 11400000, guid: bb55f74f8c37696459136bd09b9b61d3, type: 2}
+  factionEscalationFeat: {fileID: 11400000, guid: be767cc51c9dca8489e5819e5ebe8b52, type: 2}

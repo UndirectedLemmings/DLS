@@ -10,11 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1e7d0dc031de21e4590ed7ec1815fe0b, type: 3}
-  m_Name: "\u0440\u0436\u0430\u0432\u044B\u0439 \u043C\u0435\u0447"
+  m_Name: "\u0413\u043D\u0438\u043B\u0443\u043A"
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
-  itemName: "\u0440\u0436\u0430\u0432\u044B\u0439 \u043C\u0435\u0447"
-  description: "\u0440\u0436\u0430\u0432\u044B\u0439 \u043C\u0435\u0447 \u0441 \u043F\u0440\u043E\u0442\u0438\u0432\u043D\u0438\u043A\u0430"
+  itemName: "\u0413\u043D\u0438\u043B\u043E\u0439 \u041B\u0443\u043A"
+  description: "\u043B\u0443\u043A \u0441 \u043B\u0443\u043A\u0432\u0430\u043D\u0447\u0438\u043A\u0430"
   itemIcon: {fileID: 0}
   slotType: 0
-  grantedFeats:
-  - {fileID: 11400000, guid: d673901306160ae40a88776b6eb7d843, type: 2}
+  grantedFeats: []

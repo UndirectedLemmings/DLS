@@ -12,14 +12,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9d1514134bc4fbd41bb739b1b9a49231, type: 3}
   m_Name: Forest
   m_EditorClassIdentifier: Unity.2D.Tilemap.Extras::UnityEngine.RuleTile
-  m_DefaultSprite: {fileID: -8113639413432049337, guid: 6d5216b2220aef649a2fe06def3a9ab4, type: 3}
+  m_DefaultSprite: {fileID: -4186603386526661527, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
   m_DefaultGameObject: {fileID: 0}
   m_DefaultColliderType: 2
   m_TilingRules:
   - m_Id: 0
     m_Sprites:
-    - {fileID: -7774987249695766024, guid: 68ce4f3ffabecff479ef3ccfa384dfb1, type: 3}
-    - {fileID: 1291666991, guid: 68ce4f3ffabecff479ef3ccfa384dfb1, type: 3}
+    - {fileID: -4186603386526661527, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -810725596, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1379674097, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1461928646, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 824185858, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -368781188, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1392257756, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -324670455, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -1720900504, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1668575615, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -291972608, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -1553534818, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -1602250353, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -455935161, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -2003181425, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1137329538, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -1651939721, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -1820766887, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 253441548, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1972605973, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1976036119, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1339383134, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -983300855, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 535777811, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 575719648, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -595788910, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -1453552606, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -317309650, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: -396274919, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 35686660, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 564624511, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
+    - {fileID: 1137259085, guid: 64a03fed378340d47a1f58cfbe533ed7, type: 3}
     m_GameObject: {fileID: 0}
     m_MinAnimationSpeed: 1
     m_MaxAnimationSpeed: 1

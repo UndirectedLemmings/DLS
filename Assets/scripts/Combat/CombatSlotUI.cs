@@ -6,44 +6,69 @@ public class CombatSlotUI : MonoBehaviour
 {
     [Header("Привязки UI")]
     public Image portraitImage;
-    public TMP_Text hpText; // Если используешь TextMeshPro, замени на TMP_Text
-                            // public Slider hpSlider; // Раскомментируй, если захочешь добавить полоску ХП
+    public TMP_Text hpText;
 
-    /// <summary>
-    /// Обновляет визуал слота на основе данных бойца
-    /// </summary>
+    [Header("Цветовые индикаторы")]
+    public Color normalColor = Color.white;
+    public Color activeColor = Color.yellow; // Цвет хода
+    public Color targetColor = Color.red;    // Цвет цели
+    public Color deadColor = Color.gray;     // Цвет смерти
+
+    private bool _isActive = false;
+    private bool _isTargeted = false;
+    private bool _isDead = false;
+
+    // Метод обновления данных юнита
     public void UpdateSlot(CombatUnit unit)
     {
-        // 1. Проверка на Null - критически важна
         if (unit == null)
         {
             gameObject.SetActive(false);
             return;
         }
 
-        // 2. Визуал мертвого юнита (можно просто серый фильтр, а не скрывать объект)
-        if (unit.IsDead)
+        gameObject.SetActive(true);
+        _isDead = unit.IsDead;
+
+        if (_isDead)
         {
-            portraitImage.color = Color.gray; // Например, затемняем портрет
+            portraitImage.color = deadColor;
             hpText.text = "МЕРТВ";
+        }
+        else
+        {
+            hpText.text = $"EP: {unit.HealthyEP + unit.TiredEP}/{unit.BattleEndurance}";
+            if (portraitImage != null && unit.Progress.Template.portrait != null)
+                portraitImage.sprite = unit.Progress.Template.portrait;
+
+            // Применяем цвета при обновлении данных
+            ApplyColorState();
+        }
+    }
+
+    public void SetActive(bool isActive)
+    {
+        _isActive = isActive;
+        ApplyColorState();
+    }
+
+    public void SetTargeted(bool isTargeted)
+    {
+        _isTargeted = isTargeted;
+        ApplyColorState(); // <-- ЭТО БЫЛО КРИТИЧЕСКИ ВАЖНО
+    }
+
+    private void ApplyColorState()
+    {
+        if (_isDead)
+        {
+            portraitImage.color = deadColor;
             return;
         }
 
-        gameObject.SetActive(true);
-        portraitImage.color = Color.white; // Возвращаем цвет
-
-        // 3. Портрет через ссылку на шаблон в прогрессе
-        if (portraitImage != null && unit.Progress.Template.portrait != null)
-        {
-            portraitImage.sprite = unit.Progress.Template.portrait;
-        }
-
-        // 4. Вывод ресурсов
-        if (hpText != null)
-        {
-            // Теперь используем TotalEndurance из Progress (через BattleEndurance)
-            // и актуальные HealthyEP, TiredEP, WoundedEP из Progress
-            hpText.text = $"EP: {unit.HealthyEP + unit.TiredEP}/{unit.BattleEndurance} (Ран: {unit.WoundedEP})";
-        }
+        // Логика приоритета: если юнит цель — он красный, если ходит — желтый
+        if (_isTargeted) portraitImage.color = targetColor;
+        else if (_isActive) portraitImage.color = activeColor;
+        else portraitImage.color = normalColor;
     }
 }

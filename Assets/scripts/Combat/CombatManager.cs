@@ -81,34 +81,50 @@ public class CombatManager : MonoBehaviour
 
             foreach (CombatUnit activeFighter in turnQueue)
             {
+                // Проверка на паузу
+                yield return new WaitWhile(() => GameManager.Instance != null && GameManager.Instance.isMapPaused);
+
                 if (activeFighter.IsDead) continue;
 
-                // ИСПРАВЛЕНО: Теперь лог берет правильное имя (сгенерированное или из шаблона)
+                // --- ВКЛЮЧАЕМ ИНДИКАЦИЮ АКТИВНОГО ЮНИТА ---
+                activeFighter.SetActiveVisual(true);
+
                 CombatUIManager.Instance.AddLogMessage($"--- Ходит {activeFighter.UnitName} ---");
 
-                // --- НОВЫЙ УМНЫЙ ПОИСК ЦЕЛИ ---
-                // Определяем, кого мы вообще бьем (команду противника)
                 CombatUnit[] targetTeam = activeFighter.IsAttacker ? enemyTeam : heroTeam;
-
-                // Ищем цель согласно роли (Frontline, LowestHP и т.д.)
                 CombatUnit target = GetSmartTarget(activeFighter, targetTeam);
 
                 if (target != null)
                 {
+                    // 1. ПОДСВЕЧИВАЕМ ЦЕЛЬ
+                    target.SetTargetVisual(true);
+
+                    // 2. ДАЕМ ПАУЗУ, ЧТОБЫ ИГРОК ПОНЯЛ, КТО ЦЕЛЬ
+                    CombatUIManager.Instance.AddLogMessage($"{activeFighter.UnitName} целится в {target.UnitName}...");
+                    yield return new WaitForSeconds(0.8f);
+
+                    // 3. АТАКУЕМ
                     ExecuteAttack(activeFighter, target);
-                    // Сразу обновляем визуал аренных слотов после атаки
                     CombatUIManager.Instance.UpdateArena(heroTeam, enemyTeam);
+
+                    // 4. ПАУЗА ПОСЛЕ УДАРА, ЧТОБЫ УСПЕТЬ УВИДЕТЬ РЕЗУЛЬТАТ
+                    yield return new WaitForSeconds(0.5f);
+
+                    // 5. УБИРАЕМ ПРИЦЕЛ
+                    target.SetTargetVisual(false);
                 }
                 else
                 {
-                    // Если целей нет (все мертвы), выводим сообщение
                     CombatUIManager.Instance.AddLogMessage($"{activeFighter.UnitName} не видит целей!");
                 }
 
-                yield return new WaitForSeconds(1.2f);
+                // --- ВЫКЛЮЧАЕМ ИНДИКАЦИЮ АКТИВНОГО ЮНИТА ---
+                activeFighter.SetActiveVisual(false);
+
+                yield return new WaitWhile(() => GameManager.Instance != null && GameManager.Instance.isMapPaused);
+                yield return new WaitForSeconds(0.5f); // Немного отдыха перед следующим ходом
             }
 
-            // Важно: сначала проверяем окончание, подкрепления выйдут в начале следующего раунда или в фазе обработки
             HandleReinforcements();
 
             if (CheckCombatEnd())
@@ -122,7 +138,7 @@ public class CombatManager : MonoBehaviour
             }
         }
 
-        // ОЧИЩЕННЫЙ БЛОК ЗАВЕРШЕНИЯ (Без дубликатов)
+        // Завершение боя
         if (CombatUIManager.Instance != null)
             CombatUIManager.Instance.HideCombatWindow();
 
@@ -133,10 +149,7 @@ public class CombatManager : MonoBehaviour
 
         if (hero != null)
             hero.ResumeMovement();
-
-        Debug.Log("DLS: Бой успешно завершен, объекты зачищены.");
     }
-
 
     private void ExecuteAttack(CombatUnit attacker, CombatUnit target)
     {

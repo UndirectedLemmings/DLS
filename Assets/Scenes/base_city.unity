@@ -3529,7 +3529,12 @@ MonoBehaviour:
   sessionCardPool: []
   expeditionInventory: []
   globalGold: 0
+  globalHeroes: []
+  globalInventory: []
   isMapPaused: 0
+  currentExpeditionRound: 0
+  missionPool:
+  - {fileID: 11400000, guid: 294e08c2a01b2644e8d5bc293d91f1b2, type: 2}
 --- !u!4 &1287252560
 Transform:
   m_ObjectHideFlags: 0

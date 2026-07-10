@@ -26,7 +26,7 @@ MonoBehaviour:
   attackStat: 0
   defenseStat: 1
   targetPriority: 0
-  bonusStrength: 0
+  bonusStrength: 1
   bonusEndurance: 0
   bonusWill: 0
   bonusWisdom: 0
@@ -38,7 +38,7 @@ MonoBehaviour:
   dropsLoot: 1
   featLoot:
     item: {fileID: 11400000, guid: acf66ce5ca734d443a28d6bf72359c14, type: 2}
-    dropChance: 100
+    dropChance: 10
     minAmount: 1
     maxAmount: 1
   preferredTarget: 0

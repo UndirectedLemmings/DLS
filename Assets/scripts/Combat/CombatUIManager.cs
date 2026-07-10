@@ -26,6 +26,20 @@ public class CombatUIManager : MonoBehaviour
     [Header("Подкрепления")]
     public Transform reinforcementContainer; // Контейнер для иконок ожидающих врагов
 
+    public void SetUnitActive(bool isHero, int slotIndex, bool isActive)
+    {
+        var slots = isHero ? heroSlots : enemySlots;
+        if (slotIndex >= 0 && slotIndex < slots.Length)
+            slots[slotIndex].SetActive(isActive);
+    }
+
+    public void SetUnitTargeted(bool isHero, int slotIndex, bool isTargeted)
+    {
+        var slots = isHero ? heroSlots : enemySlots;
+        if (slotIndex >= 0 && slotIndex < slots.Length)
+            slots[slotIndex].SetTargeted(isTargeted);
+    }
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
