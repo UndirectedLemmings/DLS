@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &7460473448546737943
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+	serializedVersion: 3
+	m_TransformParent: {fileID: 0}
+	m_Modifications:
+	- target: {fileID: -1716617471411248118, guid: 0766d011f169dde4ca270d5cf2a71f0f, type: 3}
+	  propertyPath: spawnedCreature
+	  value: 
+	  objectReference: {fileID: 0}
+	- target: {fileID: 5935204555105438026, guid: 0766d011f169dde4ca270d5cf2a71f0f, type: 3}
+	  propertyPath: m_Name
+	  value: "Янтарный Схрон"
+	  objectReference: {fileID: 0}
+	m_RemovedComponents:
+	- {fileID: -1716617471411248118, guid: 0766d011f169dde4ca270d5cf2a71f0f, type: 3}
+	m_RemovedGameObjects: []
+	m_AddedGameObjects: []
+	m_AddedComponents:
+	- targetCorrespondingSourceObject: {fileID: 5935204555105438026, guid: 0766d011f169dde4ca270d5cf2a71f0f, type: 3}
+	  insertIndex: -1
+	  addedObject: {fileID: 5320330555448869861}
+  m_SourcePrefab: {fileID: 100100000, guid: 0766d011f169dde4ca270d5cf2a71f0f, type: 3}
+--- !u!1 &3879560851741185633 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5935204555105438026, guid: 0766d011f169dde4ca270d5cf2a71f0f, type: 3}
+  m_PrefabInstance: {fileID: 7460473448546737943}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5320330555448869861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3879560851741185633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b34ec40c28df2b4f8c470aa17cb9ada, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Building_Treasury
+  buildingLootPool:
+  - {fileID: 11400000, guid: c1d2e3f4a5b60123456789abcdef0001, type: 2}
+  - {fileID: 11400000, guid: c1d2e3f4a5b60123456789abcdef0005, type: 2}
+  itemsToDrop: 1
+  cardsToDrop: 1
+  goldToDrop: 25
+  requirementType: 1
+  costAmount: 10
+  requiredKey: {fileID: 0}
+  maxUses: -1

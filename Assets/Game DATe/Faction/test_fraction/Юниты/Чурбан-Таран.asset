@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83cdbebe7c41cb441b7aacf986a4359d, type: 3}
+  m_Name: "\u0427\u0443\u0440\u0431\u0430\u043D-\u0422\u0430\u0440\u0430\u043D"
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  unitName: "\u0427\u0443\u0440\u0431\u0430\u043D-\u0422\u0430\u0440\u0430\u043D"
+  portrait: {fileID: 0}
+  defaultSide: 1
+  baseStrength: 3
+  baseEndurance: 3
+  baseWill: 1
+  baseWisdom: 1
+  baseAgility: 1
+  basePerception: 1
+  startingWeapon: {fileID: 11400000, guid: acf66ce5ca734d443a28d6bf72359c14, type: 2}
+  startingArmor: {fileID: 0}
+  startingAccessory: {fileID: 0}
+  startingFeats:
+  - {fileID: 11400000, guid: b1c2d3e4f5a60123456789abcdef0002, type: 2}
+  baseLoot:
+  - item: {fileID: 11400000, guid: acf66ce5ca734d443a28d6bf72359c14, type: 2}
+    dropChance: 35
+    minAmount: 1
+    maxAmount: 1
+  enemyPrefab: {fileID: 902491182558126326, guid: 8c34056da78f0d0469c1ab108d219652, type: 3}

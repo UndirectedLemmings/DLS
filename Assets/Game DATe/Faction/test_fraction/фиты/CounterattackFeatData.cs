@@ -4,18 +4,21 @@ using UnityEngine;
 public class CounterattackFeatData : FeatData
 {
     [Header("Настройки контратаки")]
-    public int damageBonus = 0; // Доп урон от контратаки, если нужен
+    [Range(0, 100)] public int counterChancePercent = 35;
+    public int damageBonus = 0; // пока не используется напрямую, заложено под будущую доработку
 
-    // Допустим, у нас в FeatType есть триггер OnAttacked или OnTakeDamage
-    public override void ExecuteEffect(CombatUnit unit)
+    private void OnValidate()
     {
-        // Логика зависит от твоей боевки. 
-        // Обычно мы здесь говорим: 
-        // 1. Проверь, кто атаковал
-        // 2. Нанеси ему базовый урон юнита + damageBonus
-        Debug.Log($"[Контратака] {unit.Progress.Template.unitName} контратакует!");
+        effectTag = "Counterattack";
+        triggerType = FeatType.OnSuccessfulHitTaken;
+        reactionChance = counterChancePercent;
+    }
 
-        // Пример (если у тебя есть ссылка на последнюю цель или метод атаки):
-        // CombatManager.Instance.DealDamage(unit, unit.lastAttacker, unit.Progress.Strength + damageBonus);
+    public override void ExecuteEffect(CombatUnit unit, CombatTriggerContext context)
+    {
+        // Реальное выполнение контратаки происходит в CombatManager.TryCounterattack,
+        // здесь оставляем совместимость и отладочный след.
+        if (unit != null)
+            Debug.Log($"[Контратака] Триггер получен у {unit.UnitName}.");
     }
 }

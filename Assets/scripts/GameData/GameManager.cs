@@ -2,6 +2,20 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 
+[Serializable]
+public class FactionProgressState
+{
+    public FactionData faction;
+    public FactionProgressStage stage = FactionProgressStage.Start;
+}
+
+[Serializable]
+public class FactionResourceEntry
+{
+    public FactionData faction;
+    public int amount;
+}
+
 public class GameManager : MonoBehaviour
 {
     // Глобальная точка доступа (Синглтон)
@@ -18,6 +32,9 @@ public class GameManager : MonoBehaviour
     public int Gold = 0;
     public List<FactionData> currentFactions = new List<FactionData>();
 
+    [Header("Мета-прогрессия фракций")]
+    [SerializeField] private List<FactionProgressState> factionProgressStates = new List<FactionProgressState>();
+
     [Header("Инвентарь и Карты")]
     public List<CardData> sessionCardPool = new List<CardData>();
     public List<ItemData> expeditionInventory = new List<ItemData>();
@@ -27,6 +44,13 @@ public class GameManager : MonoBehaviour
     public List<UnitProgress> globalHeroes = new List<UnitProgress>(); // ВЕСЬ ростер героев
     public List<ItemData> globalInventory = new List<ItemData>(); // Склад в городе
 
+    [Header("Фракционные ресурсы")]
+    [SerializeField] private List<FactionResourceEntry> factionResources = new List<FactionResourceEntry>();
+
+    [Header("Прогресс Арсенала и Разведбюро")]
+    public List<WeaponUpgradeData> completedUpgrades = new List<WeaponUpgradeData>();
+    public List<ScoutUnlockData> unlockedScoutEntries = new List<ScoutUnlockData>();
+
     [Header("Состояние игры")]
     public bool isMapPaused = false;
     public int currentExpeditionRound = 1;
@@ -35,6 +59,8 @@ public class GameManager : MonoBehaviour
     public static event System.Action OnInventoryChanged;
     public static event System.Action OnRoundChanged; // Новое событие для UI
     public static event System.Action OnMissionCompleted; // Событие при выполнении миссии
+    public static event System.Action OnMetaResourcesChanged; // Фракционные ресурсы / золото / мета-склад
+    public static event System.Action OnFactionProgressChanged; // Стадии фракций
 
     // Вызывай этот метод, когда герой проходит стартовую клетку
 
@@ -100,11 +126,109 @@ public class GameManager : MonoBehaviour
         currentExpeditionRound++;
 
         Debug.Log($"[GameManager] Завершен круг №{currentExpeditionRound}");
-        
+
         OnNewLapStarted?.Invoke();
         OnRoundChanged?.Invoke();
     }
 
+    public void EnsureFactionMetaProgress(List<FactionData> factions)
+    {
+        if (factions == null)
+            return;
+
+        foreach (FactionData faction in factions)
+        {
+            EnsureFactionMetaProgress(faction);
+        }
+    }
+
+    public void EnsureFactionMetaProgress(FactionData faction)
+    {
+        if (faction == null || GetFactionProgressStateInternal(faction) != null)
+            return;
+
+        factionProgressStates.Add(new FactionProgressState
+        {
+            faction = faction,
+            stage = FactionProgressStage.Start
+        });
+    }
+
+    public FactionProgressStage GetFactionProgressStage(FactionData faction)
+    {
+        if (faction == null)
+            return FactionProgressStage.Start;
+
+        EnsureFactionMetaProgress(faction);
+
+        FactionProgressState state = GetFactionProgressStateInternal(faction);
+        return state != null ? state.stage : FactionProgressStage.Start;
+    }
+
+    public void SetFactionProgressStage(FactionData faction, FactionProgressStage stage)
+    {
+        if (faction == null)
+            return;
+
+        EnsureFactionMetaProgress(faction);
+        FactionProgressState state = GetFactionProgressStateInternal(faction);
+        if (state == null)
+            return;
+
+        state.stage = stage;
+        Debug.Log($"[GameManager] Мета-этап фракции {faction.factionName} установлен в {stage}.");
+        OnFactionProgressChanged?.Invoke();
+        OnMetaResourcesChanged?.Invoke();
+    }
+
+    public void RegisterEnemyDefeat(UnitData defeatedEnemy)
+    {
+        if (defeatedEnemy == null)
+            return;
+
+        AddMissionProgress(ObjectiveType.KillEnemies, 1);
+
+        // Начисляем ресурс фракции, которой принадлежит убитый враг
+        foreach (var faction in currentFactions)
+        {
+            if (faction == null) continue;
+            var mobs = faction.GetAvailableMobs(GetFactionProgressStage(faction));
+            foreach (var mob in mobs)
+            {
+                if (mob == defeatedEnemy)
+                {
+                    AddFactionResource(faction, 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Начисляет XP конкретному герою по итогу успешного броска (вызывать из CombatManager).
+    /// </summary>
+    public void AwardCombatXP(UnitProgress hero, CharacterStatType stat, int amount)
+    {
+        if (hero == null) return;
+        bool levelUp = hero.AddXP(stat, amount);
+        if (levelUp)
+            Debug.Log($"[GameManager] {hero.heroName}: +1 к {stat}! (накоплено XP: {hero.GetXP(stat)})");
+    }
+
+    private FactionProgressState GetFactionProgressStateInternal(FactionData faction)
+    {
+        if (faction == null)
+            return null;
+
+        for (int i = 0; i < factionProgressStates.Count; i++)
+        {
+            FactionProgressState state = factionProgressStates[i];
+            if (state != null && state.faction == faction)
+                return state;
+        }
+
+        return null;
+    }
 
     private void Awake()
     {
@@ -131,6 +255,8 @@ public class GameManager : MonoBehaviour
     {
         combatFormation = newSquad;
         if (factions != null) currentFactions = factions;
+
+        EnsureFactionMetaProgress(currentFactions);
 
         // --- ДОБАВЛЕНО: Новая экспедиция начинается с 1-го круга ---
         currentExpeditionRound = 1;
@@ -251,6 +377,8 @@ public class GameManager : MonoBehaviour
             // 2. При УСПЕХЕ переносим найденный лут на склад города
             globalInventory.AddRange(expeditionInventory);
             Debug.Log("[GameManager] Добыча успешно доставлена в город!");
+            OnMetaResourcesChanged?.Invoke();
+            OnInventoryChanged?.Invoke();
         }
         else
         {
@@ -279,6 +407,68 @@ public class GameManager : MonoBehaviour
         {
             isMapPaused = !isMapPaused;
             Debug.Log(isMapPaused ? "[GameManager] ТАКТИЧЕСКАЯ ПАУЗА" : "[GameManager] СНЯТИЕ ПАУЗЫ");
+        }
+    }
+
+    // ==========================================
+    // ФРАКЦИОННЫЕ РЕСУРСЫ
+    // ==========================================
+
+    private FactionResourceEntry GetOrCreateFactionResource(FactionData faction)
+    {
+        foreach (var entry in factionResources)
+            if (entry.faction == faction) return entry;
+
+        var newEntry = new FactionResourceEntry { faction = faction, amount = 0 };
+        factionResources.Add(newEntry);
+        return newEntry;
+    }
+
+    public int GetFactionResource(FactionData faction)
+    {
+        if (faction == null) return 0;
+        foreach (var entry in factionResources)
+            if (entry.faction == faction) return entry.amount;
+        return 0;
+    }
+
+    public void AddFactionResource(FactionData faction, int amount)
+    {
+        if (faction == null || amount <= 0) return;
+        GetOrCreateFactionResource(faction).amount += amount;
+        Debug.Log($"[GameManager] Ресурсы фракции {faction.factionName}: +{amount} (итого: {GetFactionResource(faction)})");
+        OnMetaResourcesChanged?.Invoke();
+    }
+
+    public bool SpendFactionResource(FactionData faction, int amount)
+    {
+        if (faction == null || amount <= 0) return false;
+        var entry = GetOrCreateFactionResource(faction);
+        if (entry.amount < amount)
+        {
+            Debug.Log($"[GameManager] Недостаточно ресурсов фракции {faction.factionName}: нужно {amount}, есть {entry.amount}");
+            return false;
+        }
+        entry.amount -= amount;
+        OnMetaResourcesChanged?.Invoke();
+        return true;
+    }
+
+    // ==========================================
+    // АРСЕНАЛ — применение апгрейдов к предметам
+    // ==========================================
+
+    /// <summary>
+    /// Применяет все купленные апгрейды к ItemData.grantedFeats.
+    /// Вызывать при загрузке сцены города, до показа UI.
+    /// </summary>
+    public void ApplyWeaponUpgrades()
+    {
+        foreach (var upgrade in completedUpgrades)
+        {
+            if (upgrade == null || upgrade.targetItem == null || upgrade.grantedFeat == null) continue;
+            if (!upgrade.targetItem.grantedFeats.Contains(upgrade.grantedFeat))
+                upgrade.targetItem.grantedFeats.Add(upgrade.grantedFeat);
         }
     }
 }

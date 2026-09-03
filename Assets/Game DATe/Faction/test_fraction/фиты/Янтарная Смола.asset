@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54e3690686b634c479c8656371ca0b2d, type: 3}
+  m_Name: "Янтарная Смола"
+  m_EditorClassIdentifier: Assembly-CSharp::FeatData
+  featName: "Янтарная Смола"
+  description: "+1 к силе и +1 к урону."
+  leaderOnly: 0
+  icon: {fileID: 0}
+  nature: 2
+  category: 1
+  domain: 1
+  triggerType: 0
+  effectTag: AmberResin
+  cancelsTags: []
+  overridesCombatStats: 0
+  attackStat: 4
+  defenseStat: 1
+  targetPriority: 0
+  bonusStrength: 1
+  bonusEndurance: 0
+  bonusWill: 0
+  bonusWisdom: 0
+  bonusAgility: 0
+  bonusPerception: 0
+  bonusesOnlyForBackline: 0
+  bonusDamage: 1
+  damageReduction: 0
+  bonusDiceCount: 0
+  dropsLoot: 0
+  featLoot:
+	item: {fileID: 0}
+	dropChance: 0
+	minAmount: 0
+	maxAmount: 0

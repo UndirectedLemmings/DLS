@@ -81,6 +81,20 @@ public class FeatController
     public CharacterStatType CurrentAttackStat { get; private set; } = CharacterStatType.Agility;
     public CharacterStatType CurrentDefenseStat { get; private set; } = CharacterStatType.Agility;
 
+    public int GetBonusForStat(CharacterStatType stat)
+    {
+        switch (stat)
+        {
+            case CharacterStatType.Strength:    return BonusStrength;
+            case CharacterStatType.Endurance:   return BonusEndurance;
+            case CharacterStatType.Will:        return BonusWill;
+            case CharacterStatType.Wisdom:      return BonusWisdom;
+            case CharacterStatType.Agility:     return BonusAgility;
+            case CharacterStatType.Perception:  return BonusPerception;
+            default: return 0;
+        }
+    }
+
     public List<FeatData> GetEquipmentFeats()
     {
         return equipmentFeats;
@@ -153,6 +167,40 @@ public class FeatController
         }
 
         RecalculateCombatBonuses();
+    }
+
+    public void ExecuteTriggers(FeatType triggerType)
+    {
+        ExecuteTriggers(triggerType, null);
+    }
+
+    public void ExecuteTriggers(FeatType triggerType, CombatTriggerContext context)
+    {
+        if (unit == null) return;
+
+        foreach (var feat in baseFeats)
+        {
+            if (feat != null && feat.triggerType == triggerType)
+            {
+                feat.ExecuteEffect(unit, context);
+            }
+        }
+
+        foreach (var feat in equipmentFeats)
+        {
+            if (feat != null && feat.triggerType == triggerType)
+            {
+                feat.ExecuteEffect(unit, context);
+            }
+        }
+
+        foreach (var activeFeat in temporaryFeats)
+        {
+            if (activeFeat?.Feat != null && activeFeat.Feat.triggerType == triggerType)
+            {
+                activeFeat.Feat.ExecuteEffect(unit, context);
+            }
+        }
     }
 
     public void TickCombatRounds()
@@ -277,6 +325,22 @@ public class FeatController
         return false;
     }
 
+    public FeatData FindFirstFeatByTag(string tag)
+    {
+        if (string.IsNullOrEmpty(tag)) return null;
+
+        foreach (var feat in baseFeats)
+            if (feat != null && feat.effectTag == tag) return feat;
+
+        foreach (var feat in equipmentFeats)
+            if (feat != null && feat.effectTag == tag) return feat;
+
+        foreach (var activeFeat in temporaryFeats)
+            if (activeFeat?.Feat != null && activeFeat.Feat.effectTag == tag) return activeFeat.Feat;
+
+        return null;
+    }
+
     // --- ОБНОВЛЕННЫЙ ПЕРЕСЧЕТ ---
 
     private void RecalculateCombatBonuses()
@@ -291,25 +355,47 @@ public class FeatController
         BonusAgility = 0;
         BonusPerception = 0;
 
-        CurrentAttackStat = CharacterStatType.Strength;
+        // По умолчанию выбираем атакующую характеристику в зависимости от позиции в формации:
+        // — первые два слота (0 и 1) используют Силу, задние два слота (2 и 3) — Ловкость
+        if (unit != null)
+        {
+            if (unit.SlotIndex == 2 || unit.SlotIndex == 3)
+                CurrentAttackStat = CharacterStatType.Agility;
+            else
+                CurrentAttackStat = CharacterStatType.Strength;
+        }
+        else
+        {
+            CurrentAttackStat = CharacterStatType.Strength;
+        }
+
         CurrentDefenseStat = CharacterStatType.Endurance;
 
         void ApplyFeatStats(FeatData feat)
         {
             if (feat != null && feat.triggerType == FeatType.PassiveStats)
             {
-                // Старые боевые бонусы
-                CurrentBonusDamage += feat.bonusDamage;
-                CurrentDamageReduction += feat.damageReduction;
-                BonusDiceCount += feat.bonusDiceCount;
+                // Старые боевые бонусы и условное применение бонусов по позиции
+                bool applyBonuses = true;
+                if (feat.bonusesOnlyForBackline)
+                {
+                    applyBonuses = (unit != null && (unit.SlotIndex == 2 || unit.SlotIndex == 3));
+                }
 
-                // Новые глобальные бонусы
-                BonusStrength += feat.bonusStrength;
-                BonusEndurance += feat.bonusEndurance;
-                BonusWill += feat.bonusWill;
-                BonusWisdom += feat.bonusWisdom;
-                BonusAgility += feat.bonusAgility;
-                BonusPerception += feat.bonusPerception;
+                if (applyBonuses)
+                {
+                    CurrentBonusDamage += feat.bonusDamage;
+                    CurrentDamageReduction += feat.damageReduction;
+                    BonusDiceCount += feat.bonusDiceCount;
+
+                    // Новые глобальные бонусы
+                    BonusStrength += feat.bonusStrength;
+                    BonusEndurance += feat.bonusEndurance;
+                    BonusWill += feat.bonusWill;
+                    BonusWisdom += feat.bonusWisdom;
+                    BonusAgility += feat.bonusAgility;
+                    BonusPerception += feat.bonusPerception;
+                }
 
                 // Переопределение характеристик боя от оружия/экипировки
                 if (feat.overridesCombatStats)

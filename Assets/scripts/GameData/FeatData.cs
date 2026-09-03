@@ -47,7 +47,30 @@ public enum FeatType
     OnTurnStart,
     OnAttack,       // Модификатор при атаке (например, энергетический резонанс)
     OnDamageTaken,  // Реакция на урон (например, шипы или броня)
-    OnAdventureStart// глобальный триггер для карты экспедиции
+    OnAdventureStart,// глобальный триггер для карты экспедиции
+
+    // Новые фазы боя
+    OnBattleEnd,
+    OnRoundStart,
+    OnRoundEnd,
+    OnTurnEnd,
+    OnOtherUnitTurnStart,
+    OnOtherUnitTurnEnd,
+
+    // Реакции на успешное событие
+    OnSuccessfulHit,
+    OnSuccessfulHitTaken
+}
+
+public class CombatTriggerContext
+{
+    public CombatUnit Source;
+    public CombatUnit Target;
+    public CombatManager CombatManager;
+    public bool IsReaction;
+    public int AttackSuccesses;
+    public int DefenseSuccesses;
+    public int FinalDamage;
 }
 
 
@@ -112,6 +135,14 @@ public class FeatData : ScriptableObject
     public int bonusWisdom;
     public int bonusAgility;
     public int bonusPerception;
+
+    [Header("Реакции")]
+    [Tooltip("Шанс в % для реакционного срабатывания (например, контратаки).")]
+    [Range(0, 100)] public int reactionChance = 0;
+
+    [Tooltip("Если true, модификаторы этого фита применяются только когда юнит стоит во втором (заднем) ряду")]
+    public bool bonusesOnlyForBackline;
+
     public int bonusDamage;
     public int damageReduction;
     public int bonusDiceCount;
@@ -122,6 +153,9 @@ public class FeatData : ScriptableObject
 
     // Полиморфный метод для уникальной логики фитов
     public virtual void ExecuteEffect(CombatUnit unit) { }
+
+    // Контекстный вариант для фаз и реакций в бою
+    public virtual void ExecuteEffect(CombatUnit unit, CombatTriggerContext context) { ExecuteEffect(unit); }
 
     public virtual void ExecuteAdventureStartEffect(UnitProgress overworldProgress) { }
 }

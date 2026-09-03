@@ -23,5 +23,20 @@ MonoBehaviour:
   baseFactionMobs:
   - {fileID: 11400000, guid: 59fab469858d5c840b93a3985f25cdcc, type: 2}
   - {fileID: 11400000, guid: e6394aaf1e11b1442995c28f34e54327, type: 2}
+  mobsAfterFirstBoss:
+  - {fileID: 11400000, guid: 59fab469858d5c840b93a3985f25cdcc, type: 2}
+  - {fileID: 11400000, guid: e6394aaf1e11b1442995c28f34e54327, type: 2}
   - {fileID: 11400000, guid: bb55f74f8c37696459136bd09b9b61d3, type: 2}
+  - {fileID: 11400000, guid: c7b1f4ae1b614bb7a9d4d4ed11110001, type: 2}
+  mobsAfterSecondBoss:
+  - {fileID: 11400000, guid: 59fab469858d5c840b93a3985f25cdcc, type: 2}
+  - {fileID: 11400000, guid: e6394aaf1e11b1442995c28f34e54327, type: 2}
+  - {fileID: 11400000, guid: bb55f74f8c37696459136bd09b9b61d3, type: 2}
+  - {fileID: 11400000, guid: c7b1f4ae1b614bb7a9d4d4ed11110001, type: 2}
+  - {fileID: 11400000, guid: c7b1f4ae1b614bb7a9d4d4ed11110002, type: 2}
+  - {fileID: 11400000, guid: 8e5f43f282011ca418d02d3c82917bab, type: 2}
+  - {fileID: 11400000, guid: c7b1f4ae1b614bb7a9d4d4ed11110004, type: 2}
+  firstProgressBoss: {fileID: 11400000, guid: d1e2f3a4b5c60123456789abcdef0011, type: 2}
+  secondProgressBoss: {fileID: 11400000, guid: d1e2f3a4b5c60123456789abcdef0012, type: 2}
+  finalBoss: {fileID: 11400000, guid: d1e2f3a4b5c60123456789abcdef0013, type: 2}
   factionEscalationFeat: {fileID: 11400000, guid: be767cc51c9dca8489e5819e5ebe8b52, type: 2}

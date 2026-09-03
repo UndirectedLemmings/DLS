@@ -42,9 +42,14 @@ public class GlobalFactionDirector : MonoBehaviour
         {
             if (faction == null || faction.factionEscalationFeat == null) continue;
 
+            FactionProgressStage stage = GameManager.Instance.GetFactionProgressStage(faction);
+
             // Проверяем правила спавна чемпионов для КОНКРЕТНОЙ фракции
             foreach (var rule in faction.factionEscalationFeat.championRules)
             {
+                if (rule.championMob == null || !IsChampionAllowedForCurrentStage(faction, rule.championMob, stage))
+                    continue;
+
                 if (currentRound >= rule.minRound)
                 {
                     if (Random.Range(0f, 100f) <= rule.spawnChance)
@@ -61,6 +66,20 @@ public class GlobalFactionDirector : MonoBehaviour
     }
 
     // ---УМНЫЙ СПАВН НА ДОРОГИ КОНКРЕТНОЙ ФРАКЦИИ ---
+    private bool IsChampionAllowedForCurrentStage(FactionData faction, UnitData championTemplate, FactionProgressStage stage)
+    {
+        if (faction.firstProgressBoss == championTemplate)
+            return stage == FactionProgressStage.Start;
+
+        if (faction.secondProgressBoss == championTemplate)
+            return stage == FactionProgressStage.AfterFirstBoss;
+
+        if (faction.finalBoss == championTemplate)
+            return stage == FactionProgressStage.AfterSecondBoss;
+
+        return true;
+    }
+
     private void TrySpawnChampionForFaction(FactionData faction, UnitData championTemplate)
     {
         if (championTemplate is not EnemyData enemyData) return;

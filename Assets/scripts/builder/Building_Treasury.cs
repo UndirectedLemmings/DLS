@@ -33,6 +33,9 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
     public ItemData requiredKey;
 
     [Header("Состояние")]
+    [Tooltip("Максимальное количество использований. -1 = неограниченно")]
+    public int maxUses = -1;
+    private int usesCount = 0;
     private int lastVisitedLap = -1;
 
     private Vector2Int myPosition;
@@ -53,9 +56,17 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
         int currentLap = hero.Round();
         Debug.Log($"[BUILDING DEBUG] Герой наступил на клетку здания {gameObject.name} на круг №{currentLap}");
 
+        // Защита от повторного срабатывания в тот же круг
         if (lastVisitedLap == currentLap)
         {
             Debug.Log($"[BUILDING DEBUG] Отказ! Здание {gameObject.name} уже посещалось на этом круге ({currentLap}).");
+            return;
+        }
+
+        // Проверяем лимит использований
+        if (maxUses > -1 && usesCount >= maxUses)
+        {
+            Debug.Log($"[BUILDING DEBUG] Отказ! Здание {gameObject.name} исчерпало количество использований ({usesCount}/{maxUses}).");
             return;
         }
 
@@ -74,9 +85,14 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
         PayForVisit();
         GiveLoot();
 
+        usesCount++;
         lastVisitedLap = currentLap;
 
-        if (spriteRenderer != null) spriteRenderer.color = Color.gray;
+        // Если исчерпаны использования и лимит задан, затемняем спрайт
+        if (maxUses > -1 && usesCount >= maxUses)
+        {
+            if (spriteRenderer != null) spriteRenderer.color = Color.gray;
+        }
     }
 
     private bool CanAffordVisit()

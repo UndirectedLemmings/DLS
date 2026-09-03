@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83cdbebe7c41cb441b7aacf986a4359d, type: 3}
+  m_Name: "Янтарная Корневица"
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  unitName: "Янтарная Корневица"
+  portrait: {fileID: 0}
+  defaultSide: 1
+  baseStrength: 3
+  baseEndurance: 5
+  baseWill: 3
+  baseWisdom: 4
+  baseAgility: 2
+  basePerception: 3
+  startingWeapon: {fileID: 11400000, guid: c1d2e3f4a5b60123456789abcdef0001, type: 2}
+  startingArmor: {fileID: 0}
+  startingAccessory: {fileID: 0}
+  startingFeats:
+  - {fileID: 11400000, guid: be767cc51c9dca8489e5819e5ebe8b52, type: 2}
+  baseLoot:
+  - item: {fileID: 11400000, guid: c1d2e3f4a5b60123456789abcdef0001, type: 2}
+	dropChance: 35
+	minAmount: 1
+	maxAmount: 1
+  enemyPrefab: {fileID: 902491182558126326, guid: 8c34056da78f0d0469c1ab108d219652, type: 3}

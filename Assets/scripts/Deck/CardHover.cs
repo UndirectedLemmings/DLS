@@ -5,28 +5,37 @@ public class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
 {
     [HideInInspector] public CardData myCardData;
 
+    // Инициализировать пустыми строками не обязательно, 
+    // string.IsNullOrEmpty отлично переварит и null по умолчанию.
+    private string tooltipTitle;
+    private string tooltipDescription;
+
     private void Start()
     {
-        // Автоматически берем данные карты из скрипта CardDrag, 
-        // который висит на этом же объекте карточки.
-        CardDrag dragScript = GetComponent<CardDrag>();
-        if (dragScript != null)
+        // Оптимизация: TryGetComponent работает быстрее обычного GetComponent 
+        // и не создает "мусора" (garbage) в памяти, если компонент не найден.
+        if (TryGetComponent<CardDrag>(out var dragScript))
         {
             myCardData = dragScript.myCardData;
         }
     }
 
-    // Срабатывает, когда мышка входит в границы карточки
+    public void SetupTooltip(string title, string description)
+    {
+        tooltipTitle = title;
+        tooltipDescription = description;
+    }
+
     public void OnPointerEnter(PointerEventData eventData)
     {
-        // Проверяем, что менеджер существует и данные карты загружены
-        if (TooltipManager.Instance != null && myCardData != null)
+        Debug.Log("Мышь наведена на: " + gameObject.name);
+        if (TooltipManager.Instance != null && !string.IsNullOrEmpty(tooltipTitle))
         {
-            TooltipManager.Instance.ShowTooltip(myCardData.cardName, myCardData.description);
+            Debug.Log("Вызываю ShowTooltip");
+            TooltipManager.Instance.ShowTooltip(tooltipTitle, tooltipDescription);
         }
     }
 
-    // Срабатывает, когда мышка уходит с карточки
     public void OnPointerExit(PointerEventData eventData)
     {
         if (TooltipManager.Instance != null)
@@ -35,8 +44,13 @@ public class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
         }
     }
 
-    // Защита от зависания тултипа, если карточку уничтожили (например, разыграли или сбросили)
     private void OnDisable()
+    {
+        HideTooltipSafe();
+    }
+
+    // Вынесли повторяющийся код в отдельный метод (принцип DRY - Don't Repeat Yourself)
+    private void HideTooltipSafe()
     {
         if (TooltipManager.Instance != null)
         {

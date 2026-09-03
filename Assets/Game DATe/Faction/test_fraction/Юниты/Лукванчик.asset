@@ -24,6 +24,11 @@ MonoBehaviour:
   startingWeapon: {fileID: 11400000, guid: 5c950f478864e294c86639218b8b98a1, type: 2}
   startingArmor: {fileID: 0}
   startingAccessory: {fileID: 0}
-  startingFeats: []
-  baseLoot: []
+  startingFeats:
+  - {fileID: 11400000, guid: b1c2d3e4f5a60123456789abcdef0003, type: 2}
+  baseLoot:
+  - item: {fileID: 11400000, guid: 5c950f478864e294c86639218b8b98a1, type: 2}
+    dropChance: 25
+    minAmount: 1
+    maxAmount: 1
   enemyPrefab: {fileID: 902491182558126326, guid: 8c34056da78f0d0469c1ab108d219652, type: 3}

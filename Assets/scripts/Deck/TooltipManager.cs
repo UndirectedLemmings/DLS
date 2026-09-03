@@ -3,12 +3,15 @@ using TMPro;
 
 public class TooltipManager : MonoBehaviour
 {
-    public static TooltipManager Instance; // Паттерн Синглтон
+    public static TooltipManager Instance;
 
     [Header("Ссылки на UI")]
     public GameObject tooltipPanel;
-    public TextMeshProUGUI titleText;       // Добавили заголовок (название карты/фита)
-    public TextMeshProUGUI descriptionText; // Твое текущее поле описания
+    public TextMeshProUGUI titleText;
+    public TextMeshProUGUI descriptionText;
+
+    [Header("Настройки")]
+    public Vector3 offset = new Vector3(15f, -15f, 0f);
 
     private void Awake()
     {
@@ -20,16 +23,22 @@ public class TooltipManager : MonoBehaviour
 
     private void Update()
     {
-        if (tooltipPanel.activeSelf)
+        // Обновляем позицию только если панель активна
+        if (tooltipPanel != null && tooltipPanel.activeSelf)
         {
-            // Сдвиг, чтобы курсор не перекрывал текст
-            tooltipPanel.transform.position = Input.mousePosition + new Vector3(15f, -15f, 0f);
+            tooltipPanel.transform.position = Input.mousePosition + offset;
         }
     }
 
-    // Универсальный метод вызова
     public void ShowTooltip(string title, string description)
     {
+        // Проверка на случай, если ты забыл перетащить объекты в инспекторе
+        if (tooltipPanel == null || titleText == null || descriptionText == null)
+        {
+            Debug.LogError("TooltipManager: Не назначены ссылки в Инспекторе!");
+            return;
+        }
+
         titleText.text = title;
         descriptionText.text = description;
         tooltipPanel.SetActive(true);

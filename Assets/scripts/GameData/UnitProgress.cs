@@ -35,12 +35,56 @@ public class UnitProgress
     // --- ИТОГОВЫЕ ХАРАКТЕРИСТИКИ ДЛЯ МИРА И ПРОВЕРОК (База + Шмот + ФИТЫ) ---
     // Формула: База из шаблона + Бонус напрямую от предмета + Бонус от контроллера фитов
 
-    public int TotalStrength => Template.baseStrength + (overworldFeats != null ? overworldFeats.BonusStrength : 0);
-    public int TotalEndurance => Template.baseEndurance + (overworldFeats != null ? overworldFeats.BonusEndurance : 0);
-    public int TotalWill => Template.baseWill + (overworldFeats != null ? overworldFeats.BonusWill : 0);
-    public int TotalWisdom => Template.baseWisdom + (overworldFeats != null ? overworldFeats.BonusWisdom : 0);
-    public int TotalAgility => Template.baseAgility + (overworldFeats != null ? overworldFeats.BonusAgility : 0);
-    public int TotalPerception => Template.basePerception + (overworldFeats != null ? overworldFeats.BonusPerception : 0);
+    // XP → бонус стата. Прогрессивный порог:
+    // стоимость очка N = (base + feat_bonus + N) * 10
+    // Т.е. с ростом стата прокачка дорожает (коэффициент 0.1 как делитель).
+
+    public int XpBonusStrength    => ComputeXpBonus(strengthXP,  Template.baseStrength    + (overworldFeats != null ? overworldFeats.BonusStrength    : 0));
+    public int XpBonusEndurance   => ComputeXpBonus(enduranceXP, Template.baseEndurance   + (overworldFeats != null ? overworldFeats.BonusEndurance   : 0));
+    public int XpBonusWill        => ComputeXpBonus(willXP,      Template.baseWill        + (overworldFeats != null ? overworldFeats.BonusWill        : 0));
+    public int XpBonusWisdom      => ComputeXpBonus(wisdomXP,    Template.baseWisdom      + (overworldFeats != null ? overworldFeats.BonusWisdom      : 0));
+    public int XpBonusAgility     => ComputeXpBonus(agilityXP,   Template.baseAgility     + (overworldFeats != null ? overworldFeats.BonusAgility     : 0));
+    public int XpBonusPerception  => ComputeXpBonus(perceptionXP,Template.basePerception  + (overworldFeats != null ? overworldFeats.BonusPerception  : 0));
+
+    /// <summary>
+    /// Считает, сколько бонусных очков дало накопленное XP при прогрессивном пороге.
+    /// Каждое следующее очко стоит (basePlusFeatValue + bonus) * 10 XP.
+    /// </summary>
+    public static int ComputeXpBonus(int xp, int basePlusFeatValue)
+    {
+        int bonus = 0;
+        int remaining = xp;
+        while (true)
+        {
+            int cost = (basePlusFeatValue + bonus) * 10;
+            if (remaining < cost) break;
+            remaining -= cost;
+            bonus++;
+        }
+        return bonus;
+    }
+
+    /// <summary>
+    /// XP, потраченное на уже полученные бонусы (для отображения прогресса в UI).
+    /// </summary>
+    public static int XpSpentForBonus(int bonus, int basePlusFeatValue)
+    {
+        int total = 0;
+        for (int i = 0; i < bonus; i++)
+            total += (basePlusFeatValue + i) * 10;
+        return total;
+    }
+
+    /// <summary>Стоимость следующего бонусного очка в XP.</summary>
+    public static int XpCostForNextPoint(int bonus, int basePlusFeatValue)
+        => (basePlusFeatValue + bonus) * 10;
+
+    public int TotalStrength    => Template.baseStrength    + XpBonusStrength    + (overworldFeats != null ? overworldFeats.BonusStrength    : 0);
+    public int TotalEndurance   => Template.baseEndurance   + XpBonusEndurance   + (overworldFeats != null ? overworldFeats.BonusEndurance   : 0);
+    public int TotalWill        => Template.baseWill        + XpBonusWill        + (overworldFeats != null ? overworldFeats.BonusWill        : 0);
+    public int TotalWisdom      => Template.baseWisdom      + XpBonusWisdom      + (overworldFeats != null ? overworldFeats.BonusWisdom      : 0);
+    public int TotalAgility     => Template.baseAgility     + XpBonusAgility     + (overworldFeats != null ? overworldFeats.BonusAgility     : 0);
+    public int TotalPerception  => Template.basePerception  + XpBonusPerception  + (overworldFeats != null ? overworldFeats.BonusPerception  : 0);
     // Динамические лимиты ресурсов персонажа в мире
     public int MaxEP => TotalEndurance;
     public int MaxMana => TotalWill; // К примеру, мана зависит от Воли
@@ -68,6 +112,56 @@ public class UnitProgress
 
     // Универсальный внутренний метод, чтобы не писать кучу дублирующегося кода для каждой вещи
     // (Предполагается, что в ItemData у тебя есть поля бонусов, например public int strengthBonus;)
+
+
+
+
+    // ==========================================
+    // ОПЫТ (XP)
+    // ==========================================
+
+    /// <summary>
+    /// Начисляет XP к указанной характеристике за успешное использование.
+    /// Возвращает true, если произошёл прирост стата (level-up).
+    /// </summary>
+    public bool AddXP(CharacterStatType stat, int amount)
+    {
+        if (amount <= 0) return false;
+        int before;
+        switch (stat)
+        {
+            case CharacterStatType.Strength:
+                before = XpBonusStrength;   strengthXP   += amount; return XpBonusStrength   > before;
+            case CharacterStatType.Endurance:
+                before = XpBonusEndurance;  enduranceXP  += amount; return XpBonusEndurance  > before;
+            case CharacterStatType.Will:
+                before = XpBonusWill;       willXP       += amount; return XpBonusWill       > before;
+            case CharacterStatType.Wisdom:
+                before = XpBonusWisdom;     wisdomXP     += amount; return XpBonusWisdom     > before;
+            case CharacterStatType.Agility:
+                before = XpBonusAgility;    agilityXP    += amount; return XpBonusAgility    > before;
+            case CharacterStatType.Perception:
+                before = XpBonusPerception; perceptionXP += amount; return XpBonusPerception > before;
+            default: return false;
+        }
+    }
+
+    /// <summary>
+    /// Возвращает текущий XP для указанной характеристики.
+    /// </summary>
+    public int GetXP(CharacterStatType stat)
+    {
+        switch (stat)
+        {
+            case CharacterStatType.Strength:    return strengthXP;
+            case CharacterStatType.Endurance:   return enduranceXP;
+            case CharacterStatType.Will:        return willXP;
+            case CharacterStatType.Wisdom:      return wisdomXP;
+            case CharacterStatType.Agility:     return agilityXP;
+            case CharacterStatType.Perception:  return perceptionXP;
+            default: return 0;
+        }
+    }
 
 
 

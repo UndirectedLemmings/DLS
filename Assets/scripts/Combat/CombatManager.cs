@@ -11,6 +11,9 @@ public class CombatManager : MonoBehaviour
     private CombatUnit[] enemyTeam = new CombatUnit[4];
     private Queue<UnitData> enemyBackupQueue = new Queue<UnitData>();
 
+    private int currentRoundIndex = 0;
+    private bool isReactionAttackInProgress = false;
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -46,6 +49,9 @@ public class CombatManager : MonoBehaviour
                 enemyBackupQueue.Enqueue(enemyUnits[i]); // Очередь хранит шаблоны
         }
 
+        TriggerCombatStartFeats(heroTeam);
+        TriggerCombatStartFeats(enemyTeam);
+
         // 3. Запуск интерфейса и цикла
         if (CombatUIManager.Instance != null)
         {
@@ -53,25 +59,88 @@ public class CombatManager : MonoBehaviour
             CombatUIManager.Instance.UpdateArena(heroTeam, enemyTeam);
             CombatUIManager.Instance.ClearLog();
             CombatUIManager.Instance.DrawReinforcements(enemyBackupQueue);
+
+            // Лог состава команд при старте боя
+            CombatUIManager.Instance.AddLogMessage("Состав героев:");
+            for (int i = 0; i < heroTeam.Length; i++)
+            {
+                var u = heroTeam[i];
+                if (u != null)
+                {
+                    string row = (i < 2) ? "передний" : "задний";
+                    CombatUIManager.Instance.AddLogMessage($"[{i}] {u.UnitName} ({row} ряд) — Сила:{u.BattleStrength}, Ловкость:{u.BattleAgility}, HP:{u.HealthyEP}+{u.TiredEP}/{u.BattleEndurance}");
+                }
+            }
+            CombatUIManager.Instance.AddLogMessage("Состав врагов:");
+            for (int i = 0; i < enemyTeam.Length; i++)
+            {
+                var u = enemyTeam[i];
+                if (u != null)
+                {
+                    string row = (i < 2) ? "передний" : "задний";
+                    CombatUIManager.Instance.AddLogMessage($"[{i}] {u.UnitName} ({row} ряд) — Сила:{u.BattleStrength}, Ловкость:{u.BattleAgility}, HP:{u.HealthyEP}+{u.TiredEP}/{u.BattleEndurance}");
+                }
+            }
         }
 
         StartCoroutine(BattleLoopRoutine(heroMove, enemyPos, enemySquadObj));
     }
 
-    /*private void TriggerStartOfCombat()
+    private void TriggerCombatStartFeats(CombatUnit[] units)
     {
-        foreach (var unit in playerUnits)
+        if (units == null) return;
+
+        foreach (var unit in units)
         {
-            // Менеджер просто говорит: "Бой начался! Выполните свои действия!"
-            unit.featController.ExecuteTriggers(FeatType.OnCombatStart, null);
+            if (unit == null || unit.featController == null) continue;
+            unit.featController.ExecuteTriggers(FeatType.OnBattleStart);
         }
-    }*/
+    }
+
+    private void TriggerPhaseForUnit(CombatUnit unit, FeatType phase, CombatTriggerContext context = null)
+    {
+        if (unit == null || unit.IsDead || unit.featController == null) return;
+        unit.featController.ExecuteTriggers(phase, context);
+    }
+
+    private void TriggerPhaseForTeam(CombatUnit[] team, FeatType phase, CombatTriggerContext context = null)
+    {
+        if (team == null) return;
+        foreach (var unit in team)
+            TriggerPhaseForUnit(unit, phase, context);
+    }
+
+    private void TriggerOtherUnitsPhase(CombatUnit activeUnit, FeatType phase, CombatTriggerContext context = null)
+    {
+        foreach (var unit in heroTeam)
+        {
+            if (unit == null || unit == activeUnit || unit.IsDead || unit.featController == null) continue;
+            unit.featController.ExecuteTriggers(phase, context);
+        }
+
+        foreach (var unit in enemyTeam)
+        {
+            if (unit == null || unit == activeUnit || unit.IsDead || unit.featController == null) continue;
+            unit.featController.ExecuteTriggers(phase, context);
+        }
+    }
+
     private IEnumerator BattleLoopRoutine(Character_move hero, Vector2Int enemyPos, GameObject enemySquadObj)
     {
         bool isCombatOver = false;
 
         while (!isCombatOver)
         {
+            currentRoundIndex++;
+            var roundContext = new CombatTriggerContext
+            {
+                CombatManager = this,
+                IsReaction = false
+            };
+
+            TriggerPhaseForTeam(heroTeam, FeatType.OnRoundStart, roundContext);
+            TriggerPhaseForTeam(enemyTeam, FeatType.OnRoundStart, roundContext);
+
             List<CombatUnit> turnQueue = GetSortedInitiativeQueue(heroTeam, enemyTeam);
 
             if (CombatUIManager.Instance != null)
@@ -86,10 +155,22 @@ public class CombatManager : MonoBehaviour
 
                 if (activeFighter.IsDead) continue;
 
+                var turnContext = new CombatTriggerContext
+                {
+                    Source = activeFighter,
+                    CombatManager = this,
+                    IsReaction = false
+                };
+
+                TriggerPhaseForUnit(activeFighter, FeatType.OnTurnStart, turnContext);
+                TriggerOtherUnitsPhase(activeFighter, FeatType.OnOtherUnitTurnStart, turnContext);
+
                 // --- ВКЛЮЧАЕМ ИНДИКАЦИЮ АКТИВНОГО ЮНИТА ---
                 activeFighter.SetActiveVisual(true);
 
-                CombatUIManager.Instance.AddLogMessage($"--- Ходит {activeFighter.UnitName} ---");
+                string activeRow = activeFighter.SlotIndex < 2 ? "передний" : "задний";
+                CombatUIManager.Instance.AddLogMessage($"--- Ходит {activeFighter.UnitName} (слот {activeFighter.SlotIndex}, {activeRow} ряд) ---");
+                CombatUIManager.Instance.AddLogMessage($"Статусы: HP {activeFighter.HealthyEP} | Усталость {activeFighter.TiredEP} | Раны {activeFighter.WoundedEP} / Выносливость {activeFighter.BattleEndurance}");
 
                 CombatUnit[] targetTeam = activeFighter.IsAttacker ? enemyTeam : heroTeam;
                 CombatUnit target = GetSmartTarget(activeFighter, targetTeam);
@@ -100,7 +181,8 @@ public class CombatManager : MonoBehaviour
                     target.SetTargetVisual(true);
 
                     // 2. ДАЕМ ПАУЗУ, ЧТОБЫ ИГРОК ПОНЯЛ, КТО ЦЕЛЬ
-                    CombatUIManager.Instance.AddLogMessage($"{activeFighter.UnitName} целится в {target.UnitName}...");
+                    string targetRow = target.SlotIndex < 2 ? "передний" : "задний";
+                    CombatUIManager.Instance.AddLogMessage($"{activeFighter.UnitName} (слот {activeFighter.SlotIndex}) целится в {target.UnitName} (слот {target.SlotIndex}, {targetRow} ряд)...");
                     yield return new WaitForSeconds(0.8f);
 
                     // 3. АТАКУЕМ
@@ -118,6 +200,9 @@ public class CombatManager : MonoBehaviour
                     CombatUIManager.Instance.AddLogMessage($"{activeFighter.UnitName} не видит целей!");
                 }
 
+                TriggerPhaseForUnit(activeFighter, FeatType.OnTurnEnd, turnContext);
+                TriggerOtherUnitsPhase(activeFighter, FeatType.OnOtherUnitTurnEnd, turnContext);
+
                 // --- ВЫКЛЮЧАЕМ ИНДИКАЦИЮ АКТИВНОГО ЮНИТА ---
                 activeFighter.SetActiveVisual(false);
 
@@ -127,16 +212,22 @@ public class CombatManager : MonoBehaviour
 
             HandleReinforcements();
 
+            TriggerPhaseForTeam(heroTeam, FeatType.OnRoundEnd, roundContext);
+            TriggerPhaseForTeam(enemyTeam, FeatType.OnRoundEnd, roundContext);
+
             if (CheckCombatEnd())
             {
                 isCombatOver = true;
             }
             else
             {
-                CombatUIManager.Instance.AddLogMessage("--- НОВЫЙ РАУНД ---");
+                CombatUIManager.Instance.AddLogMessage($"--- НОВЫЙ РАУНД ({currentRoundIndex + 1}) ---");
                 yield return new WaitForSeconds(1.0f);
             }
         }
+
+        TriggerPhaseForTeam(heroTeam, FeatType.OnBattleEnd, new CombatTriggerContext { CombatManager = this });
+        TriggerPhaseForTeam(enemyTeam, FeatType.OnBattleEnd, new CombatTriggerContext { CombatManager = this });
 
         // Завершение боя
         if (CombatUIManager.Instance != null)
@@ -153,7 +244,11 @@ public class CombatManager : MonoBehaviour
 
     private void ExecuteAttack(CombatUnit attacker, CombatUnit target)
     {
-        CombatUIManager.Instance.AddLogMessage($"{attacker.UnitName} атакует {target.UnitName}!");
+        string attackerSide = attacker.IsAttacker ? "Герой" : "Враг";
+        string targetSide = target.IsAttacker ? "Герой" : "Враг";
+        string attackerRow = attacker.SlotIndex < 2 ? "передний" : "задний";
+        string targetRow = target.SlotIndex < 2 ? "передний" : "задний";
+        CombatUIManager.Instance.AddLogMessage($"{attackerSide} {attacker.UnitName} (слот {attacker.SlotIndex}, {attackerRow} ряд) атакует {targetSide} {target.UnitName} (слот {target.SlotIndex}, {targetRow} ряд)!");
 
         // 1. Узнаем, какие статы диктует оружие атакующего через его контроллер фитов
         CharacterStatType attackStatType = attacker.featController.CurrentAttackStat;
@@ -181,13 +276,17 @@ public class CombatManager : MonoBehaviour
         );
 
         // Выводим адаптивные результаты в лог, чтобы игрок понимал, какие статы сработали
-        CombatUIManager.Instance.AddLogMessage($"Атака ({TranslateStatName(attackStatType)} {attackerValue}): {attackSuccesses} усп. {attackRolls}");
+        CombatUIManager.Instance.AddLogMessage($"Атака ({TranslateStatName(attackStatType)} {attackerValue}) + кубов:{attacker.CurrentWeaponBonusDice}: {attackSuccesses} усп. {attackRolls}");
         CombatUIManager.Instance.AddLogMessage($"Защита ({TranslateStatName(defenseStatType)} {targetValue}): {defenseSuccesses} усп. {defenseRolls}");
 
         if (attackSuccesses > defenseSuccesses)
         {
             // Попадание!
             int netHits = attackSuccesses - defenseSuccesses;
+
+            // XP за успешную атаку — только героям, за использованную атакующую характеристику
+            if (attacker.IsAttacker)
+                AwardXpForSuccesses(attacker, attackStatType, attackSuccesses);
 
             // --- БРОСКИ НА УРОН ---
             string damageRolls;
@@ -197,20 +296,94 @@ public class CombatManager : MonoBehaviour
 
             int finalDamage = damageSuccesses + (netHits - 1);
 
+            // XP за успешный урон (броски Силы) — только героям
+            if (attacker.IsAttacker && damageSuccesses > 0)
+                AwardXpForSuccesses(attacker, CharacterStatType.Strength, damageSuccesses);
+
             if (finalDamage > 0)
             {
                 CombatUIManager.Instance.AddLogMessage($"<color=red>{target.UnitName} получает {finalDamage} ран!</color>");
                 target.TakeWounds(finalDamage);
+                // Показываем текущее состояние цели после получения ран
+                CombatUIManager.Instance.AddLogMessage($"Статусы {target.UnitName}: HP {target.HealthyEP} | Усталость {target.TiredEP} | Раны {target.WoundedEP} / Выносливость {target.BattleEndurance}");
             }
             else
             {
                 CombatUIManager.Instance.AddLogMessage("Броня поглотила урон!");
             }
+
+            var hitContext = new CombatTriggerContext
+            {
+                Source = attacker,
+                Target = target,
+                CombatManager = this,
+                IsReaction = isReactionAttackInProgress,
+                AttackSuccesses = attackSuccesses,
+                DefenseSuccesses = defenseSuccesses,
+                FinalDamage = finalDamage
+            };
+
+            // События успешного попадания
+            TriggerPhaseForUnit(attacker, FeatType.OnSuccessfulHit, hitContext);
+            TriggerPhaseForUnit(target, FeatType.OnSuccessfulHitTaken, hitContext);
+
+            // Контратака: только не в реакционной атаке, только если цель жива
+            TryCounterattack(target, attacker, hitContext);
         }
         else
         {
             CombatUIManager.Instance.AddLogMessage($"{target.UnitName} успешно защищается от атаки!");
+
+            // XP защищавшемуся герою за успешную защиту
+            if (target.IsAttacker && defenseSuccesses > 0)
+                AwardXpForSuccesses(target, defenseStatType, defenseSuccesses);
         }
+    }
+
+    /// <summary>
+    /// Начисляет XP герою за успешные броски. +1 XP за каждый успех.
+    /// Работает только для героев (IsAttacker), не для врагов.
+    /// </summary>
+    private void AwardXpForSuccesses(CombatUnit unit, CharacterStatType stat, int successes)
+    {
+        if (!unit.IsAttacker || GameManager.Instance == null) return;
+
+        // Находим UnitProgress героя по слоту
+        UnitProgress progress = GameManager.Instance.combatFormation[unit.SlotIndex];
+        if (progress == null) return;
+
+        bool levelUp = progress.AddXP(stat, successes);
+        if (levelUp)
+            CombatUIManager.Instance.AddLogMessage(
+                $"<color=yellow>★ {unit.UnitName}: +1 к {TranslateStatName(stat)}! (прирост от опыта)</color>");
+    }
+
+    private void TryCounterattack(CombatUnit defender, CombatUnit originalAttacker, CombatTriggerContext hitContext)
+    {
+        if (isReactionAttackInProgress) return;
+        if (defender == null || originalAttacker == null) return;
+        if (defender.IsDead || originalAttacker.IsDead) return;
+        if (defender.featController == null) return;
+
+        FeatData counterFeat = defender.featController.FindFirstFeatByTag("Counterattack");
+        if (counterFeat == null) return;
+
+        int chance = Mathf.Clamp(counterFeat.reactionChance, 0, 100);
+        if (chance <= 0) chance = 35;
+
+        if (Random.Range(0, 100) >= chance)
+        {
+            CombatUIManager.Instance.AddLogMessage($"{defender.UnitName} пытается контратаковать, но не успевает ({chance}%).");
+            return;
+        }
+
+        CombatUIManager.Instance.AddLogMessage($"<color=orange>{defender.UnitName} выполняет контратаку!</color>");
+
+        isReactionAttackInProgress = true;
+        ExecuteAttack(defender, originalAttacker);
+        isReactionAttackInProgress = false;
+
+        CombatUIManager.Instance.UpdateArena(heroTeam, enemyTeam);
     }
 
     // Небольшой вспомогательный метод для красивого вывода статов в текстовый лог боя

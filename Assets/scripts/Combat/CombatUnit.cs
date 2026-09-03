@@ -149,9 +149,15 @@ public class CombatUnit
         {
             if (TiredEP > 0) { TiredEP--; WoundedEP++; }
             else if (HealthyEP > 0) { HealthyEP--; WoundedEP++; }
+            else { WoundedEP++; } // пул EP исчерпан — урон напрямую в ранения
 
             if (IsDead)
             {
+                if (!IsAttacker && GameManager.Instance != null)
+                {
+                    GameManager.Instance.RegisterEnemyDefeat(Progress.Template);
+                }
+
                 GenerateLootOnDeath();
                 break;
             }

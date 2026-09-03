@@ -25,6 +25,10 @@ public class CityManager : MonoBehaviour
     [Header("Всплывающие окна (Popups)")]
     public ExpeditionSetupPanel expeditionSetupPanel;
     public HeroInfoPanel heroInfoPanel;
+    public ArsenalPanel arsenalPanel;
+    public ScoutBureauPanel scoutBureauPanel;
+    public TrainingHallPanel trainingHallPanel;
+    public CityResourcesPanel resourcesPanel;
 
     private void Awake()
     {
@@ -54,6 +58,10 @@ public class CityManager : MonoBehaviour
 
         // Казарма открыта всегда, сразу заполняем её
         RefreshBarracksUI();
+
+        // Применяем купленные апгрейды оружия к предметам
+        if (GameManager.Instance != null)
+            GameManager.Instance.ApplyWeaponUpgrades();
     }
 
     // ==========================================
@@ -153,5 +161,87 @@ public class CityManager : MonoBehaviour
             heroInfoPanel.OpenPanel(hero);
             Debug.Log($"[CityManager] Открыта информация о герое {hero.heroName}.");
         }
+    }
+
+    /// <summary>
+    /// Открывает панель Арсенала.
+    /// </summary>
+    public void OpenArsenalPanel()
+    {
+        CloseCityPanels();
+
+        if (arsenalPanel != null)
+        {
+            arsenalPanel.gameObject.SetActive(true);
+            arsenalPanel.Refresh();
+            if (resourcesPanel != null) resourcesPanel.Refresh();
+            Debug.Log("[CityManager] Арсенал открыт.");
+        }
+        else
+        {
+            Debug.LogWarning("[CityManager] ArsenalPanel не назначена в инспекторе!");
+        }
+    }
+
+    /// <summary>
+    /// Открывает панель Разведбюро.
+    /// </summary>
+    public void OpenScoutBureauPanel()
+    {
+        CloseCityPanels();
+
+        if (scoutBureauPanel != null)
+        {
+            scoutBureauPanel.gameObject.SetActive(true);
+            scoutBureauPanel.Refresh();
+            if (resourcesPanel != null) resourcesPanel.Refresh();
+            Debug.Log("[CityManager] Разведбюро открыто.");
+        }
+        else
+        {
+            Debug.LogWarning("[CityManager] ScoutBureauPanel не назначена в инспекторе!");
+        }
+    }
+
+    /// <summary>
+    /// Открывает Тренировочный зал.
+    /// </summary>
+    public void OpenTrainingHallPanel()
+    {
+        CloseCityPanels();
+
+        if (trainingHallPanel != null)
+        {
+            trainingHallPanel.gameObject.SetActive(true);
+            trainingHallPanel.Refresh();
+            Debug.Log("[CityManager] Тренировочный зал открыт.");
+        }
+        else Debug.LogWarning("[CityManager] TrainingHallPanel не назначена в инспекторе!");
+    }
+
+    /// <summary>
+    /// Открывает панель ресурсов.
+    /// </summary>
+    public void OpenResourcesPanel()
+    {
+        CloseCityPanels();
+
+        if (resourcesPanel != null)
+        {
+            resourcesPanel.gameObject.SetActive(true);
+            resourcesPanel.Refresh();
+            Debug.Log("[CityManager] Панель ресурсов открыта.");
+        }
+        else Debug.LogWarning("[CityManager] CityResourcesPanel не назначена в инспекторе!");
+    }
+
+    private void CloseCityPanels()
+    {
+        if (heroInfoPanel != null) heroInfoPanel.ClosePanel();
+        if (expeditionSetupPanel != null) expeditionSetupPanel.gameObject.SetActive(false);
+        if (arsenalPanel != null) arsenalPanel.gameObject.SetActive(false);
+        if (scoutBureauPanel != null) scoutBureauPanel.gameObject.SetActive(false);
+        if (trainingHallPanel != null) trainingHallPanel.gameObject.SetActive(false);
+        if (resourcesPanel != null) resourcesPanel.gameObject.SetActive(false);
     }
 }

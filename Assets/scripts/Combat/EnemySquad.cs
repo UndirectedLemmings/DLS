@@ -1,5 +1,8 @@
+// Скрипт-контейнер для отряда врагов на карте.
+// Хранит список врагов, обрабатывает стакинг и теперь реагирует на клик мышью для открытия UI-меню с составом отряда.
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems; // Нужно для проверки кликов по UI
 
 public class EnemySquad : MonoBehaviour
 {
@@ -24,22 +27,20 @@ public class EnemySquad : MonoBehaviour
         }
     }
 
+
+   
+
     // Метод, который будет дергать твоя система шагов (Character_move / GridGameController),
-    // когда герой наступает на эту клетку карты
     public void EngageCombat()
     {
         if (accumulatedEnemies.Count == 0) return;
 
         Debug.Log($"DLS: Герой наступил на флаг! Передаем отряд из {accumulatedEnemies.Count} мобов в CombatManager.");
-
-        // Пример вызова (подставь имя своего метода старта боя из CombatManager):
         // CombatManager.Instance.StartBattleWith(accumulatedEnemies);
     }
 
     private void UpdateVisualIndicator()
     {
-        // Тултип или микро-счетчик: тут ты можешь выводить циферку количества мобов над флагом,
-        // чтобы игрок на карте видел, сколько врагов слиплось в один стак: 
-        // "accumulatedEnemies.Count"
+        // Тут можно обновлять текст над флагом
     }
 }
