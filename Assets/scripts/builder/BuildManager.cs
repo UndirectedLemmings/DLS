@@ -39,12 +39,6 @@ public class BuildManager : MonoBehaviour
                 return false;
             }
 
-            if (!(existingBuilding is FoundationBuilding))
-            {
-                Debug.LogWarning($"[BuildManager] Отказ: На координатах {logicalPos} есть объект, но это {existingBuilding.GetType().Name}, а не фундамент!");
-                return false;
-            }
-
             // --- БАЗОВАЯ ЛОГИКА ПОСТРОЙКИ ---
             ScriptableObject cellOwner = null;
             if (FILL_MAP_v4.cellOwners != null && FILL_MAP_v4.cellOwners.TryGetValue(logicalPos, out var owner))
@@ -58,6 +52,37 @@ public class BuildManager : MonoBehaviour
 
             if (canBuild)
             {
+                // 1) Апгрейд существующего жилища той же картой (без сноса объекта)
+                if (existingBuilding is DwellingBuilding existingDwelling)
+                {
+                    var dwellingFromCard = cardToBuild.buildingPrefab != null
+                        ? cardToBuild.buildingPrefab.GetComponent<DwellingBuilding>()
+                        : null;
+
+                    if (dwellingFromCard != null)
+                    {
+                        if (existingDwelling.TryUpgradeTier(cardToBuild))
+                        {
+                            if (handManager != null) handManager.RemoveCard(cardToBuild);
+                            Debug.Log($"DLS: Жилище в клетке {logicalPos} повышено до ур.{existingDwelling.currentTier}");
+                            return true;
+                        }
+
+                        Debug.LogWarning($"[BuildManager] Не удалось повысить жилище в клетке {logicalPos}.");
+                        return false;
+                    }
+
+                    Debug.LogWarning($"[BuildManager] На клетке {logicalPos} уже жилище. Для апгрейда нужна карта жилища.");
+                    return false;
+                }
+
+                // 2) Новая постройка возможна только поверх фундамента
+                if (!(existingBuilding is FoundationBuilding))
+                {
+                    Debug.LogWarning($"[BuildManager] Отказ: На координатах {logicalPos} есть объект, но это {existingBuilding.GetType().Name}, а не фундамент!");
+                    return false;
+                }
+
                 Vector3 spawnPos = Map.GetCellCenterWorld(tilePos);
                 spawnPos.z = -0.1f;
 

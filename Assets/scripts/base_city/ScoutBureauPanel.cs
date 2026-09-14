@@ -105,10 +105,20 @@ public class ScoutBureauPanel : MonoBehaviour
     {
         if (entry == null || GameManager.Instance == null) return false;
 
-        if (GameManager.Instance.unlockedScoutEntries.Contains(entry))
+        if (entry.unlockType == ScoutUnlockType.EnemyInfo && GameManager.Instance.unlockedScoutEntries.Contains(entry))
         {
             Debug.Log($"[Разведбюро] Запись «{entry.targetUnit?.unitName}» уже куплена.");
             return false;
+        }
+
+        if (entry.unlockType == ScoutUnlockType.DwellingTier)
+        {
+            int unlockedTier = GameManager.Instance.GetUnlockedDwellingTier(entry.requiredFaction);
+            if (unlockedTier >= entry.dwellingTierToUnlock)
+            {
+                Debug.Log($"[Разведбюро] Уровень жилища {entry.dwellingTierToUnlock} для {entry.requiredFaction?.factionName} уже открыт.");
+                return false;
+            }
         }
 
         if (entry.requiredFaction != null)
@@ -117,8 +127,19 @@ public class ScoutBureauPanel : MonoBehaviour
                 return false;
         }
 
-        GameManager.Instance.unlockedScoutEntries.Add(entry);
-        Debug.Log($"[Разведбюро] Запись о «{entry.targetUnit?.unitName}» разблокирована!");
+        if (entry.unlockType == ScoutUnlockType.DwellingTier)
+        {
+            if (!GameManager.Instance.UnlockDwellingTier(entry.requiredFaction, entry.dwellingTierToUnlock))
+                return false;
+
+            Debug.Log($"[Разведбюро] Открыт уровень жилища {entry.dwellingTierToUnlock} для фракции {entry.requiredFaction?.factionName}.");
+        }
+        else
+        {
+            GameManager.Instance.unlockedScoutEntries.Add(entry);
+            Debug.Log($"[Разведбюро] Запись о «{entry.targetUnit?.unitName}» разблокирована!");
+        }
+
         Refresh();
         return true;
     }

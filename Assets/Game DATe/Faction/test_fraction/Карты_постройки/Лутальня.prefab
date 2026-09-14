@@ -86,6 +86,9 @@ MonoBehaviour:
   itemsToDrop: 0
   cardsToDrop: 1
   goldToDrop: 0
+  factionResourceToDrop: 0
+  resourceFaction: {fileID: 0}
   requirementType: 0
   costAmount: 0
   requiredKey: {fileID: 0}
+  maxUses: -1

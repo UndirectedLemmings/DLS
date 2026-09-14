@@ -65,33 +65,39 @@ public class CardPlayManager : MonoBehaviour
     {
         int roll = Random.Range(0, 101); // Бросаем кубик от 0 до 100
 
-        // Проверяем, выпало ли золото
+        // 1) Проверяем, выпал ли фракресурс (труха)
+        if (card.factionResourceFaction != null && roll <= card.factionResourceChance)
+        {
+            int amount = Random.Range(card.minFactionResource, card.maxFactionResource + 1);
+            GameManager.Instance.AddFactionResource(card.factionResourceFaction, amount);
+            Debug.Log($"[Поиск] Найдена фракционная труха: {amount} ({card.factionResourceFaction.factionName}). (Кубик: {roll})");
+            return;
+        }
+
+        // 2) Проверяем, выпало ли золото
         if (roll <= card.goldChance)
         {
             int goldFound = Random.Range(card.minGold, card.maxGold + 1);
             GameManager.Instance.Gold += goldFound;
             GameManager.Instance.AddMissionProgress(ObjectiveType.CollectGold, goldFound);
             Debug.Log($"[Поиск] Вы нашли тайник! Получено {goldFound} золота. (Выпало на кубике: {roll})");
+            return;
         }
-        // Если золото не выпало, выдаем случайный чертеж
+
+        // 3) Иначе выдаем случайный чертеж
+        if (card.possibleBlueprints != null && card.possibleBlueprints.Count > 0)
+        {
+            int randomIndex = Random.Range(0, card.possibleBlueprints.Count);
+            CardData foundBlueprint = card.possibleBlueprints[randomIndex];
+
+            HandManager.Instance.AddCardToHand(foundBlueprint);
+            Debug.Log($"[Поиск] Вы нашли древние знания! Получен чертеж: {foundBlueprint.cardName}. (Выпало на кубике: {roll})");
+        }
         else
         {
-            if (card.possibleBlueprints != null && card.possibleBlueprints.Count > 0)
-            {
-                // Выбираем случайную карту из пула
-                int randomIndex = Random.Range(0, card.possibleBlueprints.Count);
-                CardData foundBlueprint = card.possibleBlueprints[randomIndex];
-
-                HandManager.Instance.AddCardToHand(foundBlueprint);
-                Debug.Log($"[Поиск] Вы нашли древние знания! Получен чертеж: {foundBlueprint.cardName}. (Выпало на кубике: {roll})");
-            }
-            else
-            {
-                // Защита от ошибки, если ты забыл добавить чертежи в список
-                Debug.LogWarning($"[Поиск] Карта '{card.cardName}' хотела выдать чертеж, но список 'possibleBlueprints' пуст! Выдаем утешительное золото.");
-                GameManager.Instance.Gold += card.minGold;
-                GameManager.Instance.AddMissionProgress(ObjectiveType.CollectGold, card.minGold);
-            }
+            Debug.LogWarning($"[Поиск] Карта '{card.cardName}' хотела выдать чертеж, но список 'possibleBlueprints' пуст! Выдаем утешительное золото.");
+            GameManager.Instance.Gold += card.minGold;
+            GameManager.Instance.AddMissionProgress(ObjectiveType.CollectGold, card.minGold);
         }
     }
 }

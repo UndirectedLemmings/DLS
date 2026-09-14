@@ -16,5 +16,11 @@ MonoBehaviour:
   description: "\u0440\u0436\u0430\u0432\u044B\u0439 \u043C\u0435\u0447 \u0441 \u043F\u0440\u043E\u0442\u0438\u0432\u043D\u0438\u043A\u0430"
   itemIcon: {fileID: 0}
   slotType: 0
+  weaponClass: 3
+  armorClass: 0
+  accessoryClass: 0
+  origin: 2
+  sourceFaction: {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
+  dismantleResourceValue: 1
   grantedFeats:
   - {fileID: 11400000, guid: d673901306160ae40a88776b6eb7d843, type: 2}

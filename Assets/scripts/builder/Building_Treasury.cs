@@ -24,8 +24,13 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
     [Header("Настройки Лута (Ресурсы)")]
     [Tooltip("Сколько золота выдавать за посещение")]
     public int goldToDrop = 0;
-    // Если в GameManager есть другие ресурсы (Дерево, Камень и т.д.), 
-    // можешь добавить их сюда по аналогии с золотом.
+
+    [Tooltip("Сколько фракресурса (например, Трухи) выдавать за посещение")]
+    public int factionResourceToDrop = 0;
+
+    [Tooltip("Фракция, чей ресурс выдаёт здание")]
+    public FactionData resourceFaction;
+
 
     [Header("Условия и Оплата")]
     public VisitRequirement requirementType = VisitRequirement.None;
@@ -77,7 +82,7 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
         }
 
         // Проверяем, настроен ли вообще какой-либо лут
-        if (itemsToDrop == 0 && cardsToDrop == 0 && goldToDrop == 0)
+        if (itemsToDrop == 0 && cardsToDrop == 0 && goldToDrop == 0 && factionResourceToDrop == 0)
         {
             Debug.LogWarning($"[BUILDING DEBUG] Предупреждение: У префаба {gameObject.name} не настроена выдача лута, карт или ресурсов!");
         }
@@ -166,6 +171,13 @@ public class Building_Treasury : MonoBehaviour, IBuildingLogic
         {
             GameManager.Instance.Gold += goldToDrop;
             Debug.Log($"DLS: Найдено золота в {gameObject.name}: {goldToDrop}");
+        }
+
+        // 4. Выдача фракционного ресурса (например, Трухи Болванчиков)
+        if (factionResourceToDrop > 0 && resourceFaction != null)
+        {
+            GameManager.Instance.AddFactionResource(resourceFaction, factionResourceToDrop);
+            Debug.Log($"DLS: Найдено фракресурса в {gameObject.name}: {factionResourceToDrop} ({resourceFaction.factionName})");
         }
     }
 }

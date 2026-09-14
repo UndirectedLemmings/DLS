@@ -24,6 +24,10 @@ public class DwellingBuilding : MonoBehaviour, IBuildingLogic, IMapInteractable
     [Tooltip("Список существ и их количества для заселения прилегающей дороги")]
     public List<DwellingSpawnEntry> creaturesToSpawn;
 
+    [Header("Уровни жилища")]
+    [Range(1, 3)] public int currentTier = 1;
+    public int extraSpawnCountPerTier = 1;
+
     private RoadSegmentManager attachedRoad;
     private bool isInitialized = false;
 
@@ -75,7 +79,7 @@ public class DwellingBuilding : MonoBehaviour, IBuildingLogic, IMapInteractable
     {
         if (!isInitialized || attachedRoad == null || creaturesToSpawn == null || creaturesToSpawn.Count == 0) return;
 
-        Debug.Log($"[Dwelling] {gameObject.name} генерирует отряд...");
+        Debug.Log($"[Dwelling] {gameObject.name} (ур.{currentTier}) генерирует отряд...");
 
         string factionName = attachedRoad.ownerFaction != null ? attachedRoad.ownerFaction.name : "Неизвестно";
 
@@ -84,8 +88,9 @@ public class DwellingBuilding : MonoBehaviour, IBuildingLogic, IMapInteractable
             if (entry.creature != null && entry.count > 0)
             {
                 int attemptsSucceeded = 0;
+                int attempts = entry.count + Mathf.Max(0, currentTier - 1) * Mathf.Max(0, extraSpawnCountPerTier);
 
-                for (int i = 0; i < entry.count; i++)
+                for (int i = 0; i < attempts; i++)
                 {
                     if (Random.Range(0f, 100f) <= entry.spawnChance)
                     {
@@ -96,17 +101,37 @@ public class DwellingBuilding : MonoBehaviour, IBuildingLogic, IMapInteractable
 
                 if (attemptsSucceeded > 0)
                 {
-                    Debug.Log($"DLS: [Новый круг] Жилище выпустило {entry.creature.unitName} (x{attemptsSucceeded}) на дорогу фракции {factionName}.");
+                    Debug.Log($"DLS: [Новый круг] Жилище ур.{currentTier} выпустило {entry.creature.unitName} (x{attemptsSucceeded}) на дорогу фракции {factionName}.");
                 }
             }
         }
+    }
+
+    public bool TryUpgradeTier(CardData sourceCard)
+    {
+        if (attachedRoad == null || attachedRoad.ownerFaction == null || GameManager.Instance == null)
+            return false;
+
+        int maxAllowedTier = GameManager.Instance.GetUnlockedDwellingTier(attachedRoad.ownerFaction);
+        int targetTier = currentTier + 1;
+
+        if (targetTier > 3) return false;
+        if (targetTier > maxAllowedTier)
+        {
+            Debug.LogWarning($"[Dwelling] Нельзя повысить жилище {attachedRoad.ownerFaction.factionName} до ур.{targetTier}. Открыто только до ур.{maxAllowedTier}.");
+            return false;
+        }
+
+        currentTier = targetTier;
+        Debug.Log($"[Dwelling] {gameObject.name} повышено до уровня {currentTier}.");
+        return true;
     }
     public string GetDescription()
     {
         if (creaturesToSpawn == null || creaturesToSpawn.Count == 0)
             return "Разрушенное жилище";
 
-        StringBuilder descriptionBuilder = new StringBuilder("Жилище фракции\nПризывает:");
+        StringBuilder descriptionBuilder = new StringBuilder($"Жилище фракции (ур.{currentTier})\nПризывает:");
         bool hasCreatures = false;
 
         foreach (var entry in creaturesToSpawn)

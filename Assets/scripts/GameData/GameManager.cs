@@ -16,6 +16,13 @@ public class FactionResourceEntry
     public int amount;
 }
 
+[Serializable]
+public class FactionDwellingUnlockState
+{
+    public FactionData faction;
+    [Range(1, 3)] public int maxUnlockedDwellingTier = 1;
+}
+
 public class GameManager : MonoBehaviour
 {
     // Глобальная точка доступа (Синглтон)
@@ -50,6 +57,9 @@ public class GameManager : MonoBehaviour
     [Header("Прогресс Арсенала и Разведбюро")]
     public List<WeaponUpgradeData> completedUpgrades = new List<WeaponUpgradeData>();
     public List<ScoutUnlockData> unlockedScoutEntries = new List<ScoutUnlockData>();
+
+    [Header("Разблокировки жилищ по фракциям")]
+    [SerializeField] private List<FactionDwellingUnlockState> factionDwellingUnlocks = new List<FactionDwellingUnlockState>();
 
     [Header("Состояние игры")]
     public bool isMapPaused = false;
@@ -369,6 +379,9 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log($"[GameManager] Завершение экспедиции. Успех: {isSuccess}");
 
+        // Временный список вражеской фракционной экипировки для распада после переноса лута в город
+        List<ItemData> enemyFactionItemsToDismantle = new List<ItemData>();
+
         if (isSuccess)
         {
             // 1. При УСПЕХЕ переносим заработанное золото в казну
@@ -376,7 +389,26 @@ public class GameManager : MonoBehaviour
 
             // 2. При УСПЕХЕ переносим найденный лут на склад города
             globalInventory.AddRange(expeditionInventory);
-            Debug.Log("[GameManager] Добыча успешно доставлена в город!");
+
+            // 2.1 Сразу отделяем вражескую фракционную экипировку для распада
+            foreach (var item in expeditionInventory)
+            {
+                if (item == null) continue;
+                if (item.origin == EquipmentOrigin.EnemyFaction && item.sourceFaction != null)
+                    enemyFactionItemsToDismantle.Add(item);
+            }
+
+            // 2.2 Распад вражеской фракционной экипировки в ресурсы (труху)
+            int dismantledCount = 0;
+            foreach (var item in enemyFactionItemsToDismantle)
+            {
+                int value = Mathf.Max(1, item.dismantleResourceValue);
+                AddFactionResource(item.sourceFaction, value);
+                globalInventory.Remove(item);
+                dismantledCount++;
+            }
+
+            Debug.Log($"[GameManager] Добыча успешно доставлена в город! Распылено вражеской экипировки: {dismantledCount}");
             OnMetaResourcesChanged?.Invoke();
             OnInventoryChanged?.Invoke();
         }
@@ -451,6 +483,45 @@ public class GameManager : MonoBehaviour
         }
         entry.amount -= amount;
         OnMetaResourcesChanged?.Invoke();
+        return true;
+    }
+
+    private FactionDwellingUnlockState GetOrCreateDwellingUnlock(FactionData faction)
+    {
+        if (faction == null) return null;
+
+        foreach (var state in factionDwellingUnlocks)
+            if (state != null && state.faction == faction) return state;
+
+        var created = new FactionDwellingUnlockState
+        {
+            faction = faction,
+            maxUnlockedDwellingTier = 1
+        };
+        factionDwellingUnlocks.Add(created);
+        return created;
+    }
+
+    public int GetUnlockedDwellingTier(FactionData faction)
+    {
+        var state = GetOrCreateDwellingUnlock(faction);
+        return state != null ? Mathf.Clamp(state.maxUnlockedDwellingTier, 1, 3) : 1;
+    }
+
+    public bool UnlockDwellingTier(FactionData faction, int tier)
+    {
+        if (faction == null) return false;
+        if (tier < 1 || tier > 3) return false;
+
+        var state = GetOrCreateDwellingUnlock(faction);
+        if (state == null) return false;
+
+        if (tier <= state.maxUnlockedDwellingTier) return false;
+
+        state.maxUnlockedDwellingTier = tier;
+        OnFactionProgressChanged?.Invoke();
+        OnMetaResourcesChanged?.Invoke();
+        Debug.Log($"[GameManager] Для фракции {faction.factionName} разблокирован уровень жилища {tier}.");
         return true;
     }
 

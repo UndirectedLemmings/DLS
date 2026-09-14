@@ -10,19 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 365050aee8136404383a12147d3bf4af, type: 3}
-  m_Name: "Тайник Трухи"
+  m_Name: "\u0422\u0430\u0439\u043D\u0438\u043A \u0422\u0440\u0443\u0445\u0438"
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: "Тайник Трухи"
-  description: "Многоразовая сокровищница Болванчиков с простым оружием и монетами."
+  cardName: "\u0422\u0430\u0439\u043D\u0438\u043A \u0422\u0440\u0443\u0445\u0438"
+  description: "\u041C\u043D\u043E\u0433\u043E\u0440\u0430\u0437\u043E\u0432\u0430\u044F
+    \u0441\u043E\u043A\u0440\u043E\u0432\u0438\u0449\u043D\u0438\u0446\u0430 \u0411\u043E\u043B\u0432\u0430\u043D\u0447\u0438\u043A\u043E\u0432
+    \u0441 \u043F\u0440\u043E\u0441\u0442\u044B\u043C \u043E\u0440\u0443\u0436\u0438\u0435\u043C
+    \u0438 \u043C\u043E\u043D\u0435\u0442\u0430\u043C\u0438."
   cardArt: {fileID: 1445084137899573599, guid: a8263189349c8aa43a1d10c23621ec12, type: 3}
   type: 0
   alignment: 1
   specificOwner: {fileID: 11400000, guid: 42af999e49251934cbfd66aed510ea42, type: 2}
-  buildingPrefab: {fileID: 3879560851741185632, guid: e1f2a3b4c5d60123456789abcdef0001, type: 3}
+  buildingPrefab: {fileID: 1076234882814911788, guid: d677a9979ddf78f4d86edd130b04cd57, type: 3}
   effectType: 0
   effectAmount: 0
   buildingBlueprint: {fileID: 0}
   goldChance: 0
   minGold: 0
   maxGold: 0
+  factionResourceChance: 0
+  factionResourceFaction: {fileID: 0}
+  minFactionResource: 1
+  maxFactionResource: 3
   possibleBlueprints: []

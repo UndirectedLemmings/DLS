@@ -18,6 +18,9 @@ MonoBehaviour:
   factionCards:
   - {fileID: 11400000, guid: 0e365c9ea74b94d40a35e1187493f4ce, type: 2}
   - {fileID: 11400000, guid: 0ef9179a4d8596e43a567213cf9d0e68, type: 2}
+  - {fileID: 11400000, guid: e1f2a3b4c5d60123456789abcdef0011, type: 2}
+  - {fileID: 11400000, guid: c8e1a06f2c6048a4a598f92ca1c44322, type: 2}
+  - {fileID: 11400000, guid: 2d91967cac9248f392b0d7f2699ec44b, type: 2}
   territoryVoidTiles:
   - {fileID: 11400000, guid: 2faed188e28fe7a449289e9a78767d0f, type: 2}
   baseFactionMobs:

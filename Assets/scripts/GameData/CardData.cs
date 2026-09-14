@@ -44,5 +44,12 @@ public class CardData : ScriptableObject
     [Range(0, 100)] public int goldChance = 50; // Шанс выпадения золота (в %)
     public int minGold = 10; // Минимум золота
     public int maxGold = 30; // Максимум золота
+
+    [Header("Фракресурс из LootBox")]
+    [Range(0, 100)] public int factionResourceChance = 0;
+    public FactionData factionResourceFaction;
+    public int minFactionResource = 1;
+    public int maxFactionResource = 3;
+
     public List<CardData> possibleBlueprints; // Пул чертежей, из которого берем случайный
 }

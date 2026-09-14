@@ -19,7 +19,7 @@ MonoBehaviour:
   baseEndurance: 1
   baseWill: 1
   baseWisdom: 1
-  baseAgility: 1
+  baseAgility: 2
   basePerception: 1
   startingWeapon: {fileID: 11400000, guid: 5c950f478864e294c86639218b8b98a1, type: 2}
   startingArmor: {fileID: 0}

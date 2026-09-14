@@ -198,8 +198,15 @@ public class CombatUnit
             }
         }
 
-        // 2. ЛУТ СО ВСЕХ ФИТОВ (Вампиризм, Классы, и ЭКИПИРОВКА!)
-        // Используем метод, который собирает базу + временные + ЭКИПИРОВКУ
+        // 2. ГАРАНТИРОВАННЫЙ ДРОП НАДЕТОЙ ЭКИПИРОВКИ С ВРАЖЕСКИХ ЮНИТОВ
+        if (!IsAttacker)
+        {
+            if (Progress.equippedWeapon != null) droppedItems.Add(Progress.equippedWeapon);
+            if (Progress.equippedArmor != null) droppedItems.Add(Progress.equippedArmor);
+            if (Progress.equippedAccessory != null) droppedItems.Add(Progress.equippedAccessory);
+        }
+
+        // 3. ЛУТ СО ВСЕХ ФИТОВ (Вампиризм, Классы и др.)
         var allFeats = Progress.GetAllActiveFeats();
         if (allFeats != null)
         {
@@ -213,12 +220,13 @@ public class CombatUnit
             }
         }
 
-        // 3. ОТПРАВЛЯЕМ ЛУТ В СКЛАД ЧЕРЕЗ ТВОЙ СТАРЫЙ МЕТОД
+        // 4. ОТПРАВЛЯЕМ ЛУТ В СКЛАД
         if (droppedItems.Count > 0)
         {
             foreach (var item in droppedItems)
             {
-                // Отправляем вещь в инвентарь (тут же сработает твой лог и обновление UI!)
+                if (item == null || GameManager.Instance == null) continue;
+
                 GameManager.Instance.AddLootToInventory(item);
 
                 // Пишем в лог боя чисто для красоты
